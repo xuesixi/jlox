@@ -3,7 +3,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Scanner;
+import java.util.List;
 
 public class Lox {
 
@@ -32,7 +32,7 @@ public class Lox {
     public static void runPrompt() throws IOException {
         BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
         while (true) {
-            System.out.println("> ");
+            System.out.print("> ");
             String line = reader.readLine();
             if (line == null) {
                 break;
@@ -44,8 +44,8 @@ public class Lox {
 
     public static void run(String source) {
         LoxScanner scanner = new LoxScanner(source);
-        scanner.scanTokens();
-        for (Token token: scanner.tokenList) {
+        List<Token> tokens = scanner.scanTokens();
+        for (Token token: tokens) {
             System.out.println(token);
         }
     }

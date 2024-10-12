@@ -1,5 +1,4 @@
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 
@@ -9,115 +8,121 @@ public class LoxScanner {
 
     static {
         typeMap = new HashMap<>();
-        typeMap.put("and",    TokenType.AND);
-        typeMap.put("class",  TokenType.CLASS);
-        typeMap.put("else",   TokenType.ELSE);
-        typeMap.put("false",  TokenType.FALSE);
-        typeMap.put("for",    TokenType.FOR);
-        typeMap.put("fun",    TokenType.FUN);
-        typeMap.put("if",     TokenType.IF);
-        typeMap.put("nil",    TokenType.NIL);
-        typeMap.put("or",     TokenType.OR);
-        typeMap.put("print",  TokenType.PRINT);
+        typeMap.put("and", TokenType.AND);
+        typeMap.put("class", TokenType.CLASS);
+        typeMap.put("else", TokenType.ELSE);
+        typeMap.put("false", TokenType.FALSE);
+        typeMap.put("for", TokenType.FOR);
+        typeMap.put("fun", TokenType.FUN);
+        typeMap.put("if", TokenType.IF);
+        typeMap.put("nil", TokenType.NIL);
+        typeMap.put("or", TokenType.OR);
+        typeMap.put("print", TokenType.PRINT);
         typeMap.put("return", TokenType.RETURN);
-        typeMap.put("super",  TokenType.SUPER);
-        typeMap.put("this",   TokenType.THIS);
-        typeMap.put("true",   TokenType.TRUE);
-        typeMap.put("var",    TokenType.VAR);
-        typeMap.put("while",  TokenType.WHILE);
+        typeMap.put("super", TokenType.SUPER);
+        typeMap.put("this", TokenType.THIS);
+        typeMap.put("true", TokenType.TRUE);
+        typeMap.put("var", TokenType.VAR);
+        typeMap.put("while", TokenType.WHILE);
     }
 
     private final String source;
     private int start;
     private int current;
-    private int line;
-    ArrayList<Token> tokenList = new ArrayList<>();
+    private int line = 1;
+    private ArrayList<Token> tokenList = new ArrayList<>();
 
     public LoxScanner(String source) {
         this.source = source;
     }
 
-    public void scanTokens() {
-        while (true) {
-            char next = advance();
-            start = current;
-            switch (next) {
-                case '(':
-                    addToken(TokenType.LEFT_PAREN);
-                    break;
-                case ')':
-                    addToken(TokenType.RIGHT_PAREN);
-                    break;
-                case '{':
-                    addToken(TokenType.LEFT_BRACE);
-                    break;
-                case '}':
-                    addToken(TokenType.RIGHT_BRACE);
-                    break;
-                case ',':
-                    addToken(TokenType.COMMA);
-                    break;
-                case '.':
-                    addToken(TokenType.DOT);
-                    break;
-                case '-':
-                    addToken(TokenType.MINUS);
-                    break;
-                case '+':
-                    addToken(TokenType.PLUS);
-                    break;
-                case ';':
-                    addToken(TokenType.SEMICOLON);
-                    break;
-                case '*':
-                    addToken(TokenType.STAR);
-                    break;
-                case '!':
-                    addToken(match('=') ? TokenType.BANG_EQUAL : TokenType.BANG);
-                    break;
-                case '<':
-                    addToken(match('=') ? TokenType.LESS_EQUAL : TokenType.LESS);
-                    break;
-                case '>':
-                    addToken(match('=') ? TokenType.GREATER_EQUAL : TokenType.GREATER);
-                    break;
-                case '=':
-                    addToken(match('=') ? TokenType.EQUAL_EQUAL : TokenType.EQUAL);
-                    break;
-                case '/':
-                    if (match('/')) {
-                        while (!isEnd() && peek() != '\n') {
-                            current++;
-                        }
-                    } else {
-                        addToken(TokenType.SLASH);
+    public List<Token> scanTokens() {
+        while (!isEnd()) {
+            nextToken();
+        }
+        tokenList.add(new Token(TokenType.EOF, "", null, line));
+        return tokenList;
+    }
+
+    private void nextToken() {
+        start = current;
+        char next = advance();
+        switch (next) {
+            case '(':
+                addToken(TokenType.LEFT_PAREN);
+                break;
+            case ')':
+                addToken(TokenType.RIGHT_PAREN);
+                break;
+            case '{':
+                addToken(TokenType.LEFT_BRACE);
+                break;
+            case '}':
+                addToken(TokenType.RIGHT_BRACE);
+                break;
+            case ',':
+                addToken(TokenType.COMMA);
+                break;
+            case '.':
+                addToken(TokenType.DOT);
+                break;
+            case '-':
+                addToken(TokenType.MINUS);
+                break;
+            case '+':
+                addToken(TokenType.PLUS);
+                break;
+            case ';':
+                addToken(TokenType.SEMICOLON);
+                break;
+            case '*':
+                addToken(TokenType.STAR);
+                break;
+            case '!':
+                addToken(match('=') ? TokenType.BANG_EQUAL : TokenType.BANG);
+                break;
+            case '<':
+                addToken(match('=') ? TokenType.LESS_EQUAL : TokenType.LESS);
+                break;
+            case '>':
+                addToken(match('=') ? TokenType.GREATER_EQUAL : TokenType.GREATER);
+                break;
+            case '=':
+                addToken(match('=') ? TokenType.EQUAL_EQUAL : TokenType.EQUAL);
+                break;
+            case '/':
+                if (match('/')) {
+                    while (!isEnd() && peek() != '\n') {
+                        current++;
                     }
+                } else {
+                    addToken(TokenType.SLASH);
+                }
+                break;
+            case ' ':
+            case '\r':
+            case '\t':
+                break;
+            case '\n':
+                line++;
+                break;
+            case '"':
+                stringLiteral();
+                break;
+            default:
+                if (isDigit(next)) {
+                    numberLiteral();
+                } else if (isAlpha(next)) {
+                    identifier();
+                } else {
+                    Lox.error(line, "Unexpected character");
                     break;
-                case ' ':
-                case '\r':
-                case '\t':
-                    break;
-                case '\n':
-                    line++;
-                    break;
-                case '"':
-                    stringLiteral();
-                    break;
-                default:
-                    if (isDigit(next)) {
-                        numberLiteral();
-                    } else if (isAlpha(next)) {
-                        identifier();
-                    } else {
-                        Lox.error(line, "Unexpected character");
-                        break;
-                    }
-            }
+                }
         }
     }
 
     private void identifier() {
-        while (isAlphaNumeric(peek()) ) {
+        while (isAlphaNumeric(peek())) {
             current++;
         }
         String token = source.substring(start, current);

@@ -1,0 +1,5 @@
+var count = 1;
+123abc;
+while (count < 10) {
+    print "cool!"
+}
