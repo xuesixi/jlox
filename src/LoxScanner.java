@@ -95,6 +95,8 @@ public class LoxScanner {
                     while (!isEnd() && peek() != '\n') {
                         current++;
                     }
+                } else if (match('*')) {
+                    specialComment();
                 } else {
                     addToken(TokenType.SLASH);
                 }
@@ -136,10 +138,10 @@ public class LoxScanner {
     private void stringLiteral() {
         // 該循環會因為兩個原因結束：源代碼結束，或者遇到右引號
         while (!isEnd() && peek() != '"') {
-            current++;
             if (peek() == '\n') {
                 line++;
             }
+            current++;
         }
         // 如果是因為源代碼結束，那麼說明我們沒有遇到右引號
         if (isEnd()) {
@@ -168,6 +170,23 @@ public class LoxScanner {
         addToken(TokenType.NUMBER, Double.parseDouble(source.substring(start, current)));
     }
 
+    private void specialComment() {
+        // two possibilities to break while
+        while (!isEnd() && (peek() != '*' || peekNext() != '/')) {
+            if (peek() == '\n') {
+                line++;
+            }
+            current++;
+        }
+        // if eof
+        if (isEnd()) {
+            Lox.error(line, "special comment not terminated");
+            return;
+        }
+        current += 2;
+
+    }
+
     /**
      * return the current char and increment current pointer
      *
@@ -187,7 +206,7 @@ public class LoxScanner {
         if (isEnd()) {
             return false;
         }
-        if (source.charAt(current + 1) != ch) {
+        if (source.charAt(current ) != ch) {
             return false;
         } else {
             current++;

@@ -1,5 +1,8 @@
+/* this is 
+another comoent! */
 var count = 1;
 123abc;
+// this is a comment
 while (count < 10) {
     print "cool!"
 }
