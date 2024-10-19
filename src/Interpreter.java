@@ -2,6 +2,14 @@ import java.util.List;
 
 public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     private Environment environment = new Environment();
+
+    @Override
+    public Object visitAssignExpr(Expr.Assign expr) {
+        Object value = evaluate(expr.value);
+        environment.assign(expr.name, value);
+        return value;
+    }
+
     @Override
     public Object visitBinaryExpr(Expr.Binary expr) {
         Object left = evaluate(expr.left);
@@ -78,6 +86,9 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     private Object evaluate(Expr expr) {
         return expr.accept(this);
     }
+    private Object execute(Stmt stmt) {
+        return stmt.accept(this);
+    }
 
     private boolean isTrue(Object a) {
         if (a == null) {
@@ -123,11 +134,26 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     public void interpret(List<Stmt> statementList) {
         try {
             for (Stmt stmt : statementList) {
-                stmt.accept(this);
+                execute(stmt);
             }
         } catch (LoxRuntimeError e) {
             Lox.runtimeError(e);
         }
+    }
+
+    @Override
+    public Void visitBlockStmt(Stmt.Block stmt) {
+        Environment newEnv = new Environment(this.environment);
+        Environment oldEnv = this.environment;
+        try {
+            this.environment = newEnv;
+            for (Stmt statement : stmt.statements) {
+                execute(statement);
+            }
+        }finally {
+            this.environment = oldEnv;
+        }
+        return null;
     }
 
     @Override

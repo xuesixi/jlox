@@ -32,7 +32,7 @@ public class LoxParser {
     }
 
     private Stmt varDeclaration() {
-        Token variable = consume(TokenType.IDENTIFIER, "An IDENTIFIER is needed after var" );
+        Token variable = consume(TokenType.IDENTIFIER, "An IDENTIFIER is needed after var");
         Expr initializer = null;
         if (match(TokenType.EQUAL)) {
             initializer = expression();
@@ -44,9 +44,20 @@ public class LoxParser {
     private Stmt statement() {
         if (match(TokenType.PRINT)) {
             return printStatement();
+        } else if (match(TokenType.LEFT_BRACE)) {
+            return new Stmt.Block(block());
         } else {
             return expressionStatement();
         }
+    }
+
+    private List<Stmt> block() {
+        List<Stmt> stmts = new ArrayList<>();
+        while (peek().type != TokenType.RIGHT_BRACE && !isEnd()) {
+            stmts.add(declaration());
+        }
+        consume(TokenType.RIGHT_BRACE, "The closing brace is not found");
+        return stmts;
     }
 
     private Stmt printStatement() {
@@ -67,7 +78,20 @@ public class LoxParser {
      * @return
      */
     private Expr expression() {
-        return equality();
+        return assignment();
+    }
+
+    private Expr assignment() {
+        Expr expr = equality();
+        if (match(TokenType.EQUAL)) {
+            Token equal = previous();
+            if (expr instanceof Expr.Variable) {
+                Expr value = assignment();
+                return new Expr.Assign(((Expr.Variable) expr).name, value);
+            }
+            error(equal, "Invalid assignment target");
+        }
+        return expr;
     }
 
     private Expr equality() {
