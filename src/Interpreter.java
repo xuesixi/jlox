@@ -1,4 +1,7 @@
-public class Interpreter implements Expr.Visitor<Object> {
+import java.util.List;
+
+public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
+    private Environment environment = new Environment();
     @Override
     public Object visitBinaryExpr(Expr.Binary expr) {
         Object left = evaluate(expr.left);
@@ -10,8 +13,12 @@ public class Interpreter implements Expr.Visitor<Object> {
                     return (double) left + (double) right;
                 } else if (left instanceof String && right instanceof String) {
                     return left + (String) right;
+                } else if (left instanceof String) {
+                    return left + stringify(right);
+                } else if (right instanceof String) {
+                    return stringify(left) + right;
                 }
-                throw new LoxRuntimeError(operator, "the operands do not support addition");
+                throw new LoxRuntimeError(operator, "the operands do not support addition. When interpreting");
             case TokenType.MINUS:
                 checkNumberOperand(operator, left, right);
                 return (double) left - (double) right;
@@ -58,9 +65,14 @@ public class Interpreter implements Expr.Visitor<Object> {
             return !isTrue(right);
         } else if (expr.operator.type == TokenType.MINUS) {
             checkNumberOperand(expr.operator, right);
-            return -(double)right;
+            return -(double) right;
         }
         return null;
+    }
+
+    @Override
+    public Object visitVariableExpr(Expr.Variable expr) {
+        return environment.get(expr.name);
     }
 
     private Object evaluate(Expr expr) {
@@ -88,13 +100,14 @@ public class Interpreter implements Expr.Visitor<Object> {
     private void checkNumberOperand(Token operator, Object... operands) {
         for (Object operand : operands) {
             if (!(operand instanceof Double)) {
-                throw new LoxRuntimeError(operator, "the operator " + operand + " expects number operand");
+                throw new LoxRuntimeError(operator, "the operator " + operand + " expects number operand. When interpreting");
             }
         }
     }
 
     private String stringify(Object object) {
-        if (object == null) return "nil";
+        if (object == null)
+            return "nil";
 
         if (object instanceof Double) {
             String text = object.toString();
@@ -107,13 +120,36 @@ public class Interpreter implements Expr.Visitor<Object> {
         return object.toString();
     }
 
-    public void interpret(Expr expr) {
+    public void interpret(List<Stmt> statementList) {
         try {
-            Object value = evaluate(expr);
-            System.out.println(stringify(value));
-        }catch (LoxRuntimeError e) {
-            Lox.runtimeError(e);;
+            for (Stmt stmt : statementList) {
+                stmt.accept(this);
+            }
+        } catch (LoxRuntimeError e) {
+            Lox.runtimeError(e);
         }
+    }
 
+    @Override
+    public Void visitExpressionStmt(Stmt.Expression stmt) {
+        evaluate(stmt.expression);
+        return null;
+    }
+
+    @Override
+    public Void visitPrintStmt(Stmt.Print stmt) {
+        Object value = evaluate(stmt.expression);
+        System.out.println(stringify(value));
+        return null;
+    }
+
+    @Override
+    public Void visitVarStmt(Stmt.Var stmt) {
+        Object value = null;
+        if (stmt.initializer != null) {
+            value = evaluate(stmt.initializer);
+        }
+        environment.define(stmt.name.lexeme, value);
+        return null;
     }
 }

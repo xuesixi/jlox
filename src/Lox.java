@@ -53,9 +53,9 @@ public class Lox {
         LoxScanner scanner = new LoxScanner(source);
         List<Token> tokens = scanner.scanTokens();
         LoxParser parser = new LoxParser(tokens);
-        Expr expr = parser.parse();
+        List<Stmt> statements = parser.parse();
         if (!hadError) {
-            interpreter.interpret(expr);
+            interpreter.interpret(statements);
         }
     }
 

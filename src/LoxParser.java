@@ -1,3 +1,4 @@
+import java.util.ArrayList;
 import java.util.List;
 
 public class LoxParser {
@@ -9,16 +10,60 @@ public class LoxParser {
         this.tokens = tokens;
     }
 
-    public Expr parse() {
+    public List<Stmt> parse() {
+        ArrayList<Stmt> statements = new ArrayList<>();
+        while (!isEnd()) {
+            Stmt next = declaration();
+            statements.add(next);
+        }
+        return statements;
+    }
+
+    private Stmt declaration() {
         try {
-            return expression();
+            if (match(TokenType.VAR)) {
+                return varDeclaration();
+            } else {
+                return statement();
+            }
         } catch (ParseError e) {
             return null;
         }
     }
 
+    private Stmt varDeclaration() {
+        Token variable = consume(TokenType.IDENTIFIER, "An IDENTIFIER is needed after var" );
+        Expr initializer = null;
+        if (match(TokenType.EQUAL)) {
+            initializer = expression();
+        }
+        consume(TokenType.SEMICOLON, "A semicolon is needed to terminate a statement");
+        return new Stmt.Var(variable, initializer);
+    }
+
+    private Stmt statement() {
+        if (match(TokenType.PRINT)) {
+            return printStatement();
+        } else {
+            return expressionStatement();
+        }
+    }
+
+    private Stmt printStatement() {
+        Expr expr = expression();
+        consume(TokenType.SEMICOLON, "A semicolon is needed to terminate a statement");
+        return new Stmt.Print(expr);
+    }
+
+    private Stmt expressionStatement() {
+        Expr expr = expression();
+        consume(TokenType.SEMICOLON, "A semicolon is needed to terminate a statement");
+        return new Stmt.Expression(expr);
+    }
+
     /**
      * 從 expression 到 primary，所有這些函數都是做：已知接下來的 token 們可以被解析為那個東西，進行解析，並返回
+     *
      * @return
      */
     private Expr expression() {
@@ -35,7 +80,7 @@ public class LoxParser {
         return expr;
     }
 
-    private Expr comparison(){
+    private Expr comparison() {
         Expr expr = term();
         while (match(TokenType.GREATER, TokenType.GREATER_EQUAL, TokenType.LESS, TokenType.LESS_EQUAL)) {
             Token operator = previous();
@@ -44,6 +89,7 @@ public class LoxParser {
         }
         return expr;
     }
+
     private Expr term() {
         Expr expr = factor();
         while (match(TokenType.MINUS, TokenType.PLUS)) {
@@ -89,23 +135,27 @@ public class LoxParser {
         }
         if (match(TokenType.LEFT_PAREN)) {
             Expr expr = expression();
-            consume(TokenType.RIGHT_PAREN, "Missing right parenthesis");
+            consume(TokenType.RIGHT_PAREN, "Missing right parenthesis when parsing");
             return new Expr.Grouping(expr);
         }
+        if (match(TokenType.IDENTIFIER)) {
+            return new Expr.Variable(previous());
+        }
         // unrecognized token
-        throw error(peek(), "unrecognized token");
+        throw error(peek(), "unrecognized token when parsing");
     }
 
 
     /**
      * 實際上，這才是那個真正推進匹配的函數。
+     *
      * @param types
      * @return
      */
     private boolean match(TokenType... types) {
         for (TokenType type : types) {
             if (peek().type == type) {
-                current ++;
+                current++;
                 return true;
             }
         }

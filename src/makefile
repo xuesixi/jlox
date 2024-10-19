@@ -6,6 +6,9 @@ p: Lox.java
 	@javac -d out *.java
 	@java -cp out Lox
 
-printer: ./AstPrinter.java
+codegen: CodeGen.java
+	@java ./CodeGen.java .
+
+printer: ./other.AstPrinter.java
 	@javac -d out *.java
-	@java -cp out AstPrinter
+	@java -cp out other.AstPrinter
