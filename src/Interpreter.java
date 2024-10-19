@@ -3,6 +3,98 @@ import java.util.List;
 public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     private Environment environment = new Environment();
 
+    /**
+     * 运行一个语句列表
+     * @param statementList 我们想要执行的语句列表，这个期间可能会出现运行时错误
+     */
+    public void interpret(List<Stmt> statementList) {
+        try {
+            for (Stmt stmt : statementList) {
+                execute(stmt);
+            }
+        } catch (LoxRuntimeError e) {
+            // 运行时有很多方法可能会产生运行时错误
+            Lox.runtimeError(e);
+        }
+    }
+
+    /**
+     * 对一个表达式求值
+     * @param expr 想要求值的表达式
+     * @return 该表达式的“值”
+     */
+    private Object evaluate(Expr expr) {
+        return expr.accept(this);
+    }
+
+    /**
+     * 运行一个语句
+     * @param stmt 想要运行的语句
+     * @return 一般来说，为 Void
+     */
+    private Object execute(Stmt stmt) {
+        return stmt.accept(this);
+    }
+
+
+    /**
+     * 判断一个值是否为 Lox 意义上的“true”。只有 null 和 false 为 false，其他都是 true
+     * @param a 想要判断的值
+     * @return 是否为真
+     */
+    private boolean isTrue(Object a) {
+        if (a == null) {
+            return false;
+        }
+        if (a instanceof Boolean) {
+            return (boolean) a;
+        }
+        return true;
+    }
+
+    /**
+     * 判断两个“值”是否相等。它对 null 有特殊处理。两个 null 是相等的。
+     * @param a 值1
+     * @param b 值2
+     * @return 是否相等
+     */
+    private boolean isEqual(Object a, Object b) {
+        if (a == null || b == null) {
+            return a == b;
+        } else {
+            return a.equals(b);
+        }
+    }
+
+    private void checkNumberOperand(Token operator, Object... operands) {
+        for (Object operand : operands) {
+            if (!(operand instanceof Double)) {
+                throw new LoxRuntimeError(operator, "the operator " + operand + " expects number operand. When interpreting");
+            }
+        }
+    }
+
+    /**
+     * 对于一个“值”，返回它的字符串表达方式。
+     * @param object 想要表达的值
+     * @return 字符串表达
+     */
+    private String stringify(Object object) {
+        if (object == null)
+            return "nil";
+
+        if (object instanceof Double) {
+            String text = object.toString();
+            if (text.endsWith(".0")) {
+                text = text.substring(0, text.length() - 2);
+            }
+            return text;
+        }
+
+        return object.toString();
+    }
+
+
     @Override
     public Object visitAssignExpr(Expr.Assign expr) {
         Object value = evaluate(expr.value);
@@ -38,16 +130,16 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
                 return (double) left / (double) right;
             case TokenType.GREATER:
                 checkNumberOperand(operator, left, right);
-                return (double) left < (double) right;
+                return (double) left > (double) right;
             case TokenType.GREATER_EQUAL:
                 checkNumberOperand(operator, left, right);
-                return (double) left <= (double) right;
+                return (double) left >= (double) right;
             case TokenType.LESS:
                 checkNumberOperand(operator, left, right);
-                return (double) left > (double) right;
+                return (double) left < (double) right;
             case TokenType.LESS_EQUAL:
                 checkNumberOperand(operator, left, right);
-                return (double) left >= (double) right;
+                return (double) left <= (double) right;
             case TokenType.EQUAL_EQUAL:
                 return isEqual(left, right);
             case TokenType.BANG_EQUAL:
@@ -67,6 +159,17 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
 
     @Override
+    public Object visitLogicalExpr(Expr.Logical expr) {
+        Object left = evaluate(expr.left);
+        if (expr.operator.type == TokenType.AND && !isTrue(left)) {
+            return left;
+        } else if (expr.operator.type == TokenType.OR && isTrue(left)) {
+            return left;
+        }
+        return evaluate(expr.right);
+    }
+
+    @Override
     public Object visitUnaryExpr(Expr.Unary expr) {
         Object right = evaluate(expr.right);
         if (expr.operator.type == TokenType.BANG) {
@@ -81,64 +184,6 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     @Override
     public Object visitVariableExpr(Expr.Variable expr) {
         return environment.get(expr.name);
-    }
-
-    private Object evaluate(Expr expr) {
-        return expr.accept(this);
-    }
-    private Object execute(Stmt stmt) {
-        return stmt.accept(this);
-    }
-
-    private boolean isTrue(Object a) {
-        if (a == null) {
-            return false;
-        }
-        if (a instanceof Boolean) {
-            return (boolean) a;
-        }
-        return true;
-    }
-
-    private boolean isEqual(Object a, Object b) {
-        if (a == null || b == null) {
-            return a == b;
-        } else {
-            return a.equals(b);
-        }
-    }
-
-    private void checkNumberOperand(Token operator, Object... operands) {
-        for (Object operand : operands) {
-            if (!(operand instanceof Double)) {
-                throw new LoxRuntimeError(operator, "the operator " + operand + " expects number operand. When interpreting");
-            }
-        }
-    }
-
-    private String stringify(Object object) {
-        if (object == null)
-            return "nil";
-
-        if (object instanceof Double) {
-            String text = object.toString();
-            if (text.endsWith(".0")) {
-                text = text.substring(0, text.length() - 2);
-            }
-            return text;
-        }
-
-        return object.toString();
-    }
-
-    public void interpret(List<Stmt> statementList) {
-        try {
-            for (Stmt stmt : statementList) {
-                execute(stmt);
-            }
-        } catch (LoxRuntimeError e) {
-            Lox.runtimeError(e);
-        }
     }
 
     @Override
@@ -158,7 +203,21 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
     @Override
     public Void visitExpressionStmt(Stmt.Expression stmt) {
-        evaluate(stmt.expression);
+        Object value = evaluate(stmt.expression);
+        if (Lox.repl) {
+            // in repl mode, an expression statement will print out its result
+            System.out.println(stringify(value));
+        }
+        return null;
+    }
+
+    @Override
+    public Void visitIfStmt(Stmt.If stmt) {
+        if (isTrue(evaluate(stmt.condition))) {
+            execute(stmt.thenBranch);
+        } else if (stmt.elseBranch != null){
+            execute(stmt.elseBranch);
+        }
         return null;
     }
 
@@ -176,6 +235,14 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
             value = evaluate(stmt.initializer);
         }
         environment.define(stmt.name.lexeme, value);
+        return null;
+    }
+
+    @Override
+    public Void visitWhileStmt(Stmt.While stmt) {
+        while (isTrue(evaluate(stmt.condition))) {
+            execute(stmt.body);
+        }
         return null;
     }
 }

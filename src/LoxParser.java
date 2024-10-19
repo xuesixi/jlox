@@ -1,15 +1,20 @@
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class LoxParser {
 
     private final List<Token> tokens;
-    private int current = 0;
+    private int current = 0; // 该指针指向了当前正在解析的那个 token。目前，它只会由 match 和 synchronize 两个函数移动
 
     public LoxParser(List<Token> tokens) {
         this.tokens = tokens;
     }
 
+    /**
+     * 从 tokens 中匹配语句。将所有语句添加到一个列表之中，并返回
+     * @return 从 tokens 解析出的中的所有语句列表。这个语句列表然后会被 interpreter 执行
+     */
     public List<Stmt> parse() {
         ArrayList<Stmt> statements = new ArrayList<>();
         while (!isEnd()) {
@@ -27,6 +32,7 @@ public class LoxParser {
                 return statement();
             }
         } catch (ParseError e) {
+            synchronize(); // 如果出现了错误，那么 synchronize 函数会试图寻找到下一个语句的开头，然后继续匹配
             return null;
         }
     }
@@ -37,7 +43,7 @@ public class LoxParser {
         if (match(TokenType.EQUAL)) {
             initializer = expression();
         }
-        consume(TokenType.SEMICOLON, "A semicolon is needed to terminate a statement");
+        consume(TokenType.SEMICOLON, "Here is expected to be a semicolon to terminate a statement");
         return new Stmt.Var(variable, initializer);
     }
 
@@ -46,9 +52,85 @@ public class LoxParser {
             return printStatement();
         } else if (match(TokenType.LEFT_BRACE)) {
             return new Stmt.Block(block());
+        } else if (match(TokenType.IF)) {
+            return ifStatement();
+        } else if (match(TokenType.WHILE)) {
+            return whileStatement();
+        } else if (match(TokenType.FOR)) {
+            return forStatement();
         } else {
             return expressionStatement();
         }
+    }
+
+    /**
+     * 将 `for (initilizer; condition; incrment) {
+     *     body;
+     * }` 转化为: `
+     *   {
+     *       initializer;
+     *       while (condition) {
+     *           body
+     *           incrment
+     *       }
+     *   }
+     * `
+     * @return
+     */
+    private Stmt forStatement() {
+        consume(TokenType.LEFT_PAREN, "A left parenthesis is required for for statement");
+        Stmt initializer;
+        if (match(TokenType.VAR)) {
+            initializer = varDeclaration();
+        } else if (match(TokenType.SEMICOLON)) {
+            initializer = null;
+        } else {
+            initializer = expressionStatement();
+        }
+
+        Expr condition;
+        if (match(TokenType.SEMICOLON)) {
+            condition = new Expr.Literal(true);
+        } else {
+            condition = expression();
+            consume(TokenType.SEMICOLON, "The middle semicolon for for statement");
+        }
+
+        Expr incrment;
+        if (match(TokenType.RIGHT_PAREN)) {
+            incrment = null;
+        } else {
+            incrment = expression();
+        }
+        consume(TokenType.RIGHT_PAREN, "A right parenthesis is required for for statement");
+
+        Stmt body = statement();
+        if (incrment != null) {
+            body = new Stmt.Block(Arrays.asList(body, new Stmt.Expression(incrment)));
+        }
+
+        Stmt loop = new Stmt.While(condition, body);
+        return new Stmt.Block(Arrays.asList(initializer, loop));
+    }
+
+    private Stmt whileStatement() {
+        consume(TokenType.LEFT_PAREN, "A left parenthesis is required for while statement");
+        Expr condition = expression();
+        consume(TokenType.RIGHT_PAREN, "A right parenthesis is required for while statement");
+        Stmt body = statement();
+        return new Stmt.While(condition, body);
+    }
+
+    private Stmt ifStatement() {
+        consume(TokenType.LEFT_PAREN, "A left parenthesis is required for if statement");
+        Expr condition = expression();
+        consume(TokenType.RIGHT_PAREN, "A right parenthesis is required for if statement");
+        Stmt thenStmt = statement();
+        Stmt elseStatment = null;
+        if (match(TokenType.ELSE)) {
+            elseStatment = statement();
+        }
+        return new Stmt.If(condition, thenStmt, elseStatment);
     }
 
     private List<Stmt> block() {
@@ -62,13 +144,13 @@ public class LoxParser {
 
     private Stmt printStatement() {
         Expr expr = expression();
-        consume(TokenType.SEMICOLON, "A semicolon is needed to terminate a statement");
+        consume(TokenType.SEMICOLON, "Here is expected to be a semicolon to terminate a statement");
         return new Stmt.Print(expr);
     }
 
     private Stmt expressionStatement() {
         Expr expr = expression();
-        consume(TokenType.SEMICOLON, "A semicolon is needed to terminate a statement");
+        consume(TokenType.SEMICOLON, "Here is expected to be a semicolon to terminate a statement");
         return new Stmt.Expression(expr);
     }
 
@@ -82,14 +164,34 @@ public class LoxParser {
     }
 
     private Expr assignment() {
-        Expr expr = equality();
+        Expr expr = or();
         if (match(TokenType.EQUAL)) {
             Token equal = previous();
             if (expr instanceof Expr.Variable) {
                 Expr value = assignment();
                 return new Expr.Assign(((Expr.Variable) expr).name, value);
             }
-            error(equal, "Invalid assignment target");
+            parseError(equal, "Invalid assignment target");
+        }
+        return expr;
+    }
+
+    private Expr or() {
+        Expr expr = and();
+        while (match(TokenType.OR)) {
+            Token operator = previous();
+            Expr right = and();
+            expr = new Expr.Logical(expr, operator, right);
+        }
+        return expr;
+    }
+
+    private Expr and() {
+        Expr expr = equality();
+        while (match(TokenType.AND)) {
+            Token operator = previous();
+            Expr right = equality();
+            expr = new Expr.Logical(expr, operator, right);
         }
         return expr;
     }
@@ -144,6 +246,10 @@ public class LoxParser {
     }
 
 
+    /**
+     * 匹配并消耗最基础的表达式单位。大部分错误由这里产生。
+     * @return 下一个最基础的表达式单位
+     */
     private Expr primary() {
         if (match(TokenType.TRUE)) {
             return new Expr.Literal(true);
@@ -159,22 +265,22 @@ public class LoxParser {
         }
         if (match(TokenType.LEFT_PAREN)) {
             Expr expr = expression();
-            consume(TokenType.RIGHT_PAREN, "Missing right parenthesis when parsing");
+            consume(TokenType.RIGHT_PAREN, "Missing right parenthesis");
             return new Expr.Grouping(expr);
         }
         if (match(TokenType.IDENTIFIER)) {
             return new Expr.Variable(previous());
         }
         // unrecognized token
-        throw error(peek(), "unrecognized token when parsing");
+        throw parseError(peek(), "The token is at the inappropriate position");
     }
 
 
     /**
      * 實際上，這才是那個真正推進匹配的函數。
      *
-     * @param types
-     * @return
+     * @param types 我们想要匹配的 token 的类型。
+     * @return  如果下一个 token 是给定的 types 中的任意一个，那么将其消耗，然后返回 true。否则，不消耗，返回 false；
      */
     private boolean match(TokenType... types) {
         for (TokenType type : types) {
@@ -194,19 +300,60 @@ public class LoxParser {
         return tokens.get(current - 1);
     }
 
+    /**
+     * 断言下一个token 是某个类型，如果错误，则抛出 {@link ParseError}
+     * @param type 断言的类型
+     * @param message 如果失败，给出的错误信息
+     * @return 如果断言成功，返回刚才的那个 token
+     */
     private Token consume(TokenType type, String message) {
         if (match(type)) {
             return previous();
         }
-        throw error(peek(), message);
+        throw parseError(peek(), message);
     }
 
-    private ParseError error(Token token, String message) {
-        Lox.error(token, message);
+    /**
+     * 返回一个 {@link ParseError}，值得注意的是，该函数本身并不会直接将其抛出
+     * @param token 出现错误的 {@link Token}
+     * @param message 错误信息
+     * @return 一个代表错误的 error 对象
+     */
+    private ParseError parseError(Token token, String message) {
+        Lox.parsingError(token.line,token.lexeme, message);
         return new ParseError();
     }
 
+    /**
+     * 当遇到 {@link ParseError}的时候，移动 current 指针，直到下一个分号，或者下一个我们认为很可能是语句开头的 token
+     * 这用于处理错误，防止因为一个错误而将所有其他语句认为也是错误的。
+     */
+    private void synchronize() {
+        current++;
+        while (!isEnd()) {
+            if (previous().type == TokenType.SEMICOLON) {
+                return;
+            }
+            // 下面这些token 被认为大概率是一个语句开始的标志，因此我们停留在这里，开始下一次的 parse
+            switch (peek().type) {
+                case CLASS:
+                case FUN:
+                case VAR:
+                case FOR:
+                case IF:
+                case WHILE:
+                case PRINT:
+                case RETURN:
+                    return;
+            }
+            current++;
+        }
+    }
+
     private boolean isEnd() {
+        if (current >= tokens.size()) {
+            return true;
+        }
         return tokens.get(current).type == TokenType.EOF;
     }
 

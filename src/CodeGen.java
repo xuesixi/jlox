@@ -15,16 +15,21 @@ public class CodeGen {
                 "Binary   : Expr left, Token operator, Expr right",
                 "Grouping : Expr expression",
                 "Literal  : Object value",
+                "Logical  : Expr left, Token operator, Expr right",
                 "Unary    : Token operator, Expr right",
                 "Variable : Token name"
         ));
         defineAst(outputDir, "Stmt", Arrays.asList(
                 "Block      : List<Stmt> statements",
                 "Expression : Expr expression",
+                "If         : Expr condition, Stmt thenBranch," +
+                        " Stmt elseBranch",
                 "Print      : Expr expression",
-                "Var        : Token name, Expr initializer"
+                "Var        : Token name, Expr initializer",
+                "While      : Expr condition, Stmt body"
         ));
     }
+
     private static void defineAst(
             String outputDir, String baseName, List<String> types)
             throws IOException {
@@ -46,6 +51,7 @@ public class CodeGen {
         writer.println("}");
         writer.close();
     }
+
     private static void defineType(
             PrintWriter writer, String baseName,
             String className, String fieldList) {
@@ -80,6 +86,7 @@ public class CodeGen {
 
         writer.println("  }");
     }
+
     private static void defineVisitor(
             PrintWriter writer, String baseName, List<String> types) {
         writer.println("  interface Visitor<R> {");

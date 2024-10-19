@@ -117,7 +117,7 @@ public class LoxScanner {
                 } else if (isAlpha(next)) {
                     identifier();
                 } else {
-                    Lox.error(line, "Unexpected character when scanning");
+                    Lox.scanningError(line, String.valueOf(next), "Unexpected character");
                     break;
                 }
         }
@@ -145,7 +145,7 @@ public class LoxScanner {
         }
         // 如果是因為源代碼結束，那麼說明我們沒有遇到右引號
         if (isEnd()) {
-            Lox.error(line, "Unterminated string when scanning");
+            Lox.scanningError(line,null, "Unterminated string");
             return;
         }
 
@@ -180,7 +180,7 @@ public class LoxScanner {
         }
         // if eof
         if (isEnd()) {
-            Lox.error(line, "special comment not terminated when scanning");
+            Lox.scanningError(line, null,"special comment not terminated");
             return;
         }
         current += 2;
