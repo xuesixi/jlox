@@ -1,7 +1,29 @@
+import java.util.ArrayList;
 import java.util.List;
 
 public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
-    private Environment environment = new Environment();
+//    private Environment environment = new Environment();
+    public Environment global = new Environment();
+    private Environment environment = global;
+
+    public Interpreter() {
+        global.define("clock", new LoxCallable() {
+            @Override
+            public int arity() {
+                return 0;
+            }
+
+            @Override
+            public Object call(Interpreter interpreter, List<Object> arguments) {
+                return System.currentTimeMillis()/1000.0;
+            }
+
+            @Override
+            public String toString() {
+                return "<function: clock>";
+            }
+        });
+    }
 
     /**
      * 运行一个语句列表
@@ -14,7 +36,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
             }
         } catch (LoxRuntimeError e) {
             // 运行时有很多方法可能会产生运行时错误
-            Lox.runtimeError(e);
+            Lox.reportRuntimeError(e);
         }
     }
 
@@ -34,6 +56,18 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
      */
     private Object execute(Stmt stmt) {
         return stmt.accept(this);
+    }
+
+    public void executeWithEnvironment(List<Stmt> statements, Environment env) {
+        Environment old = this.environment;
+        this.environment = env;
+        try {
+            for (Stmt statement : statements) {
+                execute(statement);
+            }
+        } finally {
+            this.environment = old;
+        }
     }
 
 
@@ -149,6 +183,24 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
 
     @Override
+    public Object visitCallExpr(Expr.Call expr) {
+        List<Object> arguments = new ArrayList<>();
+        for (Expr argument : expr.arguments) {
+            Object value = evaluate(argument);
+            arguments.add(value);
+        }
+        Object called = evaluate(expr.callee);
+        if (! (called instanceof LoxCallable)) {
+            throw new LoxRuntimeError(expr.paren, "The value " + stringify(called) + " is not callable");
+        }
+        LoxCallable function = (LoxCallable) called;
+        if (function.arity() != arguments.size()) {
+            throw new LoxRuntimeError(expr.paren, "The callable " + stringify(called) + " expects " + function.arity() + " arguments, but got " + arguments.size());
+        }
+        return function.call(this, arguments);
+    }
+
+    @Override
     public Object visitGroupingExpr(Expr.Grouping expr) {
         return expr.expression.accept(this);
     }
@@ -189,15 +241,16 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     @Override
     public Void visitBlockStmt(Stmt.Block stmt) {
         Environment newEnv = new Environment(this.environment);
-        Environment oldEnv = this.environment;
-        try {
-            this.environment = newEnv;
-            for (Stmt statement : stmt.statements) {
-                execute(statement);
-            }
-        }finally {
-            this.environment = oldEnv;
-        }
+//        Environment oldEnv = this.environment;
+//        try {
+//            this.environment = newEnv;
+//            for (Stmt statement : stmt.statements) {
+//                execute(statement);
+//            }
+//        }finally {
+//            this.environment = oldEnv;
+//        }
+        executeWithEnvironment(stmt.statements, newEnv);
         return null;
     }
 
@@ -208,6 +261,13 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
             // in repl mode, an expression statement will print out its result
             System.out.println(stringify(value));
         }
+        return null;
+    }
+
+    @Override
+    public Void visitFunctionStmt(Stmt.Function stmt) {
+        LoxFunction function = new LoxFunction(stmt, environment);
+        environment.define(stmt.name.lexeme, function);
         return null;
     }
 
@@ -226,6 +286,15 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         Object value = evaluate(stmt.expression);
         System.out.println(stringify(value));
         return null;
+    }
+
+    @Override
+    public Void visitReturnStmt(Stmt.Return stmt) {
+        Object value = null;
+        if (stmt.value != null) {
+            value = evaluate(stmt.value);
+        }
+        throw new LoxRuntimeError.LoxReturn(stmt.keyword, value);
     }
 
     @Override

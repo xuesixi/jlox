@@ -58,9 +58,43 @@ public class LoxParser {
             return whileStatement();
         } else if (match(TokenType.FOR)) {
             return forStatement();
+        } else if (match(TokenType.FUN)) {
+            return function();
+        } else if (match(TokenType.RETURN)) {
+            return returnStatement();
         } else {
             return expressionStatement();
         }
+    }
+
+    private Stmt returnStatement() {
+        Token token = previous();
+        Expr returnExpr;
+        if (!match(TokenType.SEMICOLON)) {
+            returnExpr = expression();
+            consume(TokenType.SEMICOLON, "A semicolon is needed here");
+        } else {
+            returnExpr = null;
+        }
+        return new Stmt.Return(token, returnExpr);
+    }
+
+    private Stmt function() {
+        Token name = consume(TokenType.IDENTIFIER, "A function name is required");
+        consume(TokenType.LEFT_PAREN, "A ( is required for function");
+        List<Token> parameters = new ArrayList<>();
+        if (!match(TokenType.RIGHT_PAREN)) {
+            do {
+                if (parameters.size() >= 255) {
+                    parseError(peek(), "More than 255 parameters");
+                }
+                parameters.add(consume(TokenType.IDENTIFIER, "a parameter is expected here"));
+            }while (match(TokenType.COMMA));
+            consume(TokenType.RIGHT_PAREN, "A ) is needed for function");
+        }
+        consume(TokenType.LEFT_BRACE, "A { is needed for function body");
+        List<Stmt> body = block();
+        return new Stmt.Function(name, parameters, body);
     }
 
     /**
@@ -242,7 +276,38 @@ public class LoxParser {
             Expr right = unary();
             return new Expr.Unary(operator, right);
         }
-        return primary();
+        return call();
+    }
+
+    private Expr call() {
+        Expr expr = primary();
+        while (true) {
+            if (match(TokenType.LEFT_PAREN)) {
+                expr = finishCall(expr);
+            } else {
+                break;
+            }
+        }
+        return expr;
+    }
+
+    /**
+     *
+     * @param callee 函数的本体. 比如 abc() 中的 abc
+     * @return
+     */
+    private Expr finishCall(Expr callee) {
+        ArrayList<Expr> arguments = new ArrayList<>();
+        while (peek().type != TokenType.RIGHT_PAREN) {
+            do {
+                if (arguments.size() >= 255) {
+                    parseError(peek(), "More than 255 arguments are passed into a function");
+                }
+                arguments.add(expression());
+            } while (match(TokenType.COMMA));
+        }
+        Token paren = consume(TokenType.RIGHT_PAREN, "a function call needs to end with a )");
+        return new Expr.Call(callee, paren, arguments);
     }
 
 

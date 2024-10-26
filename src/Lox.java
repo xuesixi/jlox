@@ -73,11 +73,12 @@ public class Lox {
         report(line, where, "Scanning error: " + message);
     }
 
-//    public static void error(Token token, String message) {
-//        error(token.line, message);
-//    }
 
-    static void runtimeError(LoxRuntimeError error) {
+    /**
+     * 这个函数不是用来抛出运行时错误，而是当运行时错误被 catch 时，调用该函数向用户报告。
+     * @param error 捕获到的运行时错误
+     */
+    static void reportRuntimeError(LoxRuntimeError error) {
         System.err.println("Runtime error: " + error.getMessage() +
                 "\n[line " + error.token.line + "]");
         hadRuntimeError = true;

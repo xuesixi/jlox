@@ -1,5 +1,9 @@
-var a = 1;
-print a;
-for (var i = 0; i < 10; i = i + 1) {
-    print i;
+
+var num = 10;
+
+fun print_num(num) {
+    print 2 * num;
 }
+
+print_num(9);
+print num;
