@@ -149,7 +149,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         } else {
             environment.assignAt(expr.name, value, distance);
         }
-        return null;
+        return value;
     }
 
     @Override
@@ -278,7 +278,9 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         Object value = evaluate(stmt.expression);
         if (Lox.repl) {
             // in repl mode, an expression statement will print out its result
-            System.out.println(stringify(value));
+            if (value != null) {
+                System.out.println(stringify(value));
+            }
         }
         return null;
     }

@@ -37,20 +37,35 @@ public class Lox {
         }
     }
 
+    /**
+     * REPL 模式下，如果补货到了 ReplPending 异常，说明在某个该有语句的地方没有语句。
+     * 此时我们会保存上一次的输入，然后重新读取输入。将这两次的输入合并在一起，一起重新解释。
+     * @throws IOException
+     */
     public static void runPrompt() throws IOException {
         repl = true;
         BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+        String old = "";
         while (true) {
-            System.out.print("> ");
+            if (old.isEmpty()) {
+                System.out.print("> ");
+            } else {
+                System.out.print("... ");
+            }
             String line = reader.readLine();
             if (line == null) {
+                System.out.println();
                 break;
             }
-            // in repl mode, if the input does not end with a semicolon, automatically append one;
-            if (!line.endsWith(";") && !line.endsWith("}")) {
-                line += ";";
+            try {
+                run(old + line);
+                old = "";
+            }catch (LoxParser.ReplPending e) {
+                old += line;
+                continue;
+            } catch (LoxParser.ParseError e) {
+                old = "";
             }
-            run(line);
             hadError = false;
         }
     }

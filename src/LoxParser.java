@@ -37,8 +37,13 @@ public class LoxParser {
                 return statement();
             }
         } catch (ParseError e) {
-            synchronize(); // 如果出现了错误，那么 synchronize 函数会试图寻找到下一个语句的开头，然后继续匹配
-            return null;
+            if (Lox.repl) {
+                // repl 模式下，不再继续解析，而是直接出错。
+                throw e;
+            } else {
+                synchronize(); // 如果出现了错误，那么 synchronize 函数会试图寻找到下一个语句的开头，然后继续匹配
+                return null;
+            }
         }
     }
 
@@ -64,6 +69,10 @@ public class LoxParser {
     }
 
     private Stmt statement() {
+        // 如果此处应该有某个语句，但所有输入已经结束，且这是 REPL 模式，那么我们视为 repl pending
+        if (isEnd() && Lox.repl) {
+            throw new ReplPending();
+        }
         if (match(TokenType.PRINT)) {
             return printStatement();
         } else if (match(TokenType.LEFT_BRACE)) {
@@ -112,17 +121,22 @@ public class LoxParser {
     }
 
     /**
-     * 将 `for (initilizer; condition; incrment) {
-     * body;
-     * }` 转化为: `
+     * 将
+     * <pre>
+     * for (initializer; condition; increment) {
+     *      body
+     * }
+     * </pre>
+     * 转化为:
+     * <pre>
      * {
-     * initializer;
-     * while (condition) {
-     * body
-     * incrment
+     *     initializer
+     *     while (condition) {
+     *         body
+     *         increment
+     *     }
      * }
-     * }
-     * `
+     * </pre>
      *
      * @return
      */
@@ -159,7 +173,11 @@ public class LoxParser {
         }
 
         Stmt loop = new Stmt.While(condition, body);
-        return new Stmt.Block(Arrays.asList(initializer, loop));
+        if (initializer != null) {
+            return new Stmt.Block(Arrays.asList(initializer, loop));
+        } else {
+            return new Stmt.Block(Arrays.asList(loop));
+        }
     }
 
     private Stmt whileStatement() {
@@ -391,6 +409,14 @@ public class LoxParser {
         if (match(type)) {
             return previous();
         }
+        if (Lox.repl && isEnd()) {
+            // 如果要的是分号，那么自动补全它
+            if (type == TokenType.SEMICOLON) {
+                return new Token(TokenType.SEMICOLON, ";", null, -1);
+            } else {
+                throw new ReplPending();
+            }
+        }
         throw parseError(peek(), message);
     }
 
@@ -439,7 +465,14 @@ public class LoxParser {
         return tokens.get(current).type == TokenType.EOF;
     }
 
-    private static class ParseError extends RuntimeException {
+    static class ParseError extends RuntimeException {
+
+    }
+
+    /**
+     * 在 REPL 模式下，我们会在某些情况下抛出该异常。runPrompt 中会处理这个异常。
+     */
+    static class ReplPending extends RuntimeException {
 
     }
 }
