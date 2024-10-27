@@ -1,6 +1,7 @@
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.zip.Deflater;
 
 public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     public Environment global = new Environment(); // global 用来储存全局变量
@@ -262,6 +263,13 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     public Void visitBlockStmt(Stmt.Block stmt) {
         Environment newEnv = new Environment(this.environment);
         executeWithEnvironment(stmt.statements, newEnv);
+        return null;
+    }
+
+    @Override
+    public Void visitClassStmt(Stmt.Class stmt) {
+        LoxClass loxClass = new LoxClass(stmt.name.lexeme);
+        environment.define(stmt.name.lexeme, loxClass);
         return null;
     }
 

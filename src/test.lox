@@ -1,7 +1,10 @@
-var a = "global";
-{
-    var a = a;
-    print a;
+class Animal {
+    run() {
+        print "hello";
+    }
 }
 
-print a;
+fun say() { print "this is cool";}
+
+say();
+print Animal;

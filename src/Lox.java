@@ -47,7 +47,7 @@ public class Lox {
                 break;
             }
             // in repl mode, if the input does not end with a semicolon, automatically append one;
-            if (!line.endsWith(";")) {
+            if (!line.endsWith(";") && !line.endsWith("}")) {
                 line += ";";
             }
             run(line);
@@ -60,10 +60,12 @@ public class Lox {
         List<Token> tokens = scanner.scanTokens();
         LoxParser parser = new LoxParser(tokens);
         List<Stmt> statements = parser.parse();
-        Resolver resolver = new Resolver(interpreter);
-        resolver.resolve(statements);
         if (!hadError) {
-            interpreter.interpret(statements);
+            Resolver resolver = new Resolver(interpreter);
+            resolver.resolve(statements);
+            if (!hadError) {
+                interpreter.interpret(statements);
+            }
         }
     }
 
