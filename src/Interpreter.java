@@ -1,9 +1,10 @@
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
-//    private Environment environment = new Environment();
-    public Environment global = new Environment();
+    public Environment global = new Environment(); // global 用来储存全局变量
+    private final HashMap<Expr, Integer> locals = new HashMap<>(); // 每一个变量表达式所访问的变量的深度。
     private Environment environment = global;
 
     public Interpreter() {
@@ -58,6 +59,15 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         return stmt.accept(this);
     }
 
+    public void resolve(Expr expr, int distance) {
+        locals.put(expr, distance);
+    }
+
+    /**
+     * 切换到目标环境，执行语句，然后切换回原环境
+     * @param statements 要执行的语句
+     * @param env 执行语句的环境
+     */
     public void executeWithEnvironment(List<Stmt> statements, Environment env) {
         Environment old = this.environment;
         this.environment = env;
@@ -132,8 +142,13 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     @Override
     public Object visitAssignExpr(Expr.Assign expr) {
         Object value = evaluate(expr.value);
-        environment.assign(expr.name, value);
-        return value;
+        Integer distance = locals.get(expr);
+        if (distance == null) {
+            global.assign(expr.name, value);;
+        } else {
+            environment.assignAt(expr.name, value, distance);
+        }
+        return null;
     }
 
     @Override
@@ -235,21 +250,17 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
     @Override
     public Object visitVariableExpr(Expr.Variable expr) {
-        return environment.get(expr.name);
+        Integer distance = locals.get(expr);
+        if (distance == null) {
+            return global.get(expr.name);
+        } else {
+            return environment.getAt(expr.name, distance);
+        }
     }
 
     @Override
     public Void visitBlockStmt(Stmt.Block stmt) {
         Environment newEnv = new Environment(this.environment);
-//        Environment oldEnv = this.environment;
-//        try {
-//            this.environment = newEnv;
-//            for (Stmt statement : stmt.statements) {
-//                execute(statement);
-//            }
-//        }finally {
-//            this.environment = oldEnv;
-//        }
         executeWithEnvironment(stmt.statements, newEnv);
         return null;
     }

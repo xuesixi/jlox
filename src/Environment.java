@@ -21,6 +21,14 @@ public class Environment {
         }
     }
 
+    public Object getAt(Token name, int distance) {
+        Environment curr = this;
+        for (int i = 0; i < distance; i++) {
+            curr = curr.enclosing;
+        }
+        return curr.values.get(name.lexeme);
+    }
+
     public void define(String name, Object value) {
         values.put(name, value);
     }
@@ -33,5 +41,13 @@ public class Environment {
         } else {
             throw new LoxRuntimeError(name, "the variable: " + name.lexeme + " does not exist");
         }
+    }
+
+    public void assignAt(Token name, Object value, int distance) {
+        Environment curr = this;
+        for (int i = 0; i < distance; i++) {
+            curr = curr.enclosing;
+        }
+        curr.values.put(name.lexeme, value);
     }
 }

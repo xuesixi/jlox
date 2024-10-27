@@ -1,9 +1,7 @@
-
-var num = 10;
-
-fun print_num(num) {
-    print 2 * num;
+var a = "global";
+{
+    var a = a;
+    print a;
 }
 
-print_num(9);
-print num;
+print a;

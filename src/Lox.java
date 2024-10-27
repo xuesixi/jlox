@@ -60,6 +60,8 @@ public class Lox {
         List<Token> tokens = scanner.scanTokens();
         LoxParser parser = new LoxParser(tokens);
         List<Stmt> statements = parser.parse();
+        Resolver resolver = new Resolver(interpreter);
+        resolver.resolve(statements);
         if (!hadError) {
             interpreter.interpret(statements);
         }
@@ -71,6 +73,10 @@ public class Lox {
 
     public static void scanningError(int line, String where, String message) {
         report(line, where, "Scanning error: " + message);
+    }
+
+    public static void resolvingError(int line, String where, String message) {
+        report(line, where, "Resolving error: " + message);
     }
 
 
