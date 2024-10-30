@@ -114,7 +114,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     private void checkNumberOperand(Token operator, Object... operands) {
         for (Object operand : operands) {
             if (!(operand instanceof Double)) {
-                throw new LoxRuntimeError(operator, "the operator " + operand + " expects number operand. When interpreting");
+                throw new LoxRuntimeError(operator, "the operator expects number operand ");
             }
         }
     }
@@ -168,7 +168,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
                 } else if (right instanceof String) {
                     return stringify(left) + right;
                 }
-                throw new LoxRuntimeError(operator, "the operands do not support addition. When interpreting");
+                throw new LoxRuntimeError(operator, "the operands do not support addition");
             case TokenType.MINUS:
                 checkNumberOperand(operator, left, right);
                 return (double) left - (double) right;
@@ -207,13 +207,22 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         }
         Object called = evaluate(expr.callee);
         if (! (called instanceof LoxCallable)) {
-            throw new LoxRuntimeError(expr.paren, "The value " + stringify(called) + " is not callable");
+            throw new LoxRuntimeError(expr.paren, "the value " + stringify(called) + " is not callable");
         }
         LoxCallable function = (LoxCallable) called;
         if (function.arity() != arguments.size()) {
-            throw new LoxRuntimeError(expr.paren, "The callable " + stringify(called) + " expects " + function.arity() + " arguments, but got " + arguments.size());
+            throw new LoxRuntimeError(expr.paren, "the callable " + stringify(called) + " expects " + function.arity() + " arguments, but got " + arguments.size());
         }
         return function.call(this, arguments);
+    }
+
+    @Override
+    public Object visitGetExpr(Expr.Get expr) {
+        Object instance = evaluate(expr.object);
+        if (instance instanceof LoxInstance) {
+            return ((LoxInstance) instance).get(expr.name);
+        }
+        throw new LoxRuntimeError(expr.name, "only object supports field getting");
     }
 
     @Override
@@ -235,6 +244,17 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
             return left;
         }
         return evaluate(expr.right);
+    }
+
+    @Override
+    public Object visitSetExpr(Expr.Set expr) {
+        Object instance = evaluate(expr.object);
+        Object value = evaluate(expr.value);
+        if (instance instanceof LoxInstance) {
+            ((LoxInstance) instance).set(expr.name, value);
+            return value;
+        }
+        throw new LoxRuntimeError(expr.name, "only object supports field setting");
     }
 
     @Override

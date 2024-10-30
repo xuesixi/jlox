@@ -9,7 +9,7 @@ public class LoxRuntimeError extends RuntimeException{
         Object value;
 
         LoxReturn(Token token, Object value) {
-            super(token, "A return statement is only allowed inside a function");
+            super(token, "a return statement is only allowed inside a function");
             this.value = value;
         }
     }

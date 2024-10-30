@@ -237,6 +237,10 @@ public class LoxParser {
             if (expr instanceof Expr.Variable) {
                 Expr value = assignment();
                 return new Expr.Assign(((Expr.Variable) expr).name, value);
+            } else if (expr instanceof Expr.Get) {
+                Expr value = assignment();
+                Expr.Get get = (Expr.Get) expr;
+                return new Expr.Set(get.object, get.name, value);
             }
             parseError(equal, "Invalid assignment target");
         }
@@ -317,6 +321,9 @@ public class LoxParser {
         while (true) {
             if (match(TokenType.LEFT_PAREN)) {
                 expr = finishCall(expr);
+            } else if (match(TokenType.DOT)) {
+                Token property = consume(TokenType.IDENTIFIER, "you need to specify a property");
+                expr = new Expr.Get(expr, property);
             } else {
                 break;
             }

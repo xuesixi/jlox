@@ -17,7 +17,7 @@ public class Environment {
         } else if (enclosing != null) {
             return enclosing.get(name);
         } else {
-            throw new LoxRuntimeError(name, "No such variable: " + name.lexeme);
+            throw new LoxRuntimeError(name, "no such variable");
         }
     }
 
@@ -39,7 +39,7 @@ public class Environment {
         } else if (enclosing != null) {
             enclosing.assign(name, value);
         } else {
-            throw new LoxRuntimeError(name, "the variable: " + name.lexeme + " does not exist");
+            throw new LoxRuntimeError(name, "the variable does not exist");
         }
     }
 

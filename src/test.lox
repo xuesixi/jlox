@@ -1,5 +1,14 @@
+class Animal {
+    run() {
+        print "the dog is running";
+    }
+}
 
 var num = 10;
 for (; num > 0; num = num -1) {
     print num;
 }
+
+var dog = Animal();
+dog.name = 10;
+dog.run();
