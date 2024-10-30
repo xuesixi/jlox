@@ -4,11 +4,13 @@ class Animal {
     }
 }
 
-var num = 10;
-for (; num > 0; num = num -1) {
-    print num;
+fun sayDog(name, age) {
+    print f"the dog {name} is of age {age}";
 }
 
 var dog = Animal();
-dog.name = 10;
-dog.run();
+dog.name = "anda";
+dog.age = 4;
+
+sayDog("mu", 3);
+sayDog(dog.name, dog.age);

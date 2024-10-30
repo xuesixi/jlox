@@ -128,6 +128,14 @@ public class Resolver implements Stmt.Visitor<Void>, Expr.Visitor<Void> {
         return null;
     }
 
+    @Override
+    public Void visitFStringExpr(Expr.FStirng expr) {
+        for (Expr e : expr.exprList) {
+            resolve(e);
+        }
+        return null;
+    }
+
     /**
      * block具有新一层 scope
      * @param stmt

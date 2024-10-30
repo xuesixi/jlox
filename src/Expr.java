@@ -1,4 +1,5 @@
 
+import java.util.ArrayList;
 import java.util.List;
 
 abstract class Expr {
@@ -13,6 +14,7 @@ abstract class Expr {
     R visitSetExpr(Set expr);
     R visitUnaryExpr(Unary expr);
     R visitVariableExpr(Variable expr);
+    R visitFStringExpr(FStirng expr);
   }
   static class Assign extends Expr {
     Assign(Token name, Expr value) {
@@ -155,6 +157,21 @@ abstract class Expr {
     }
 
     final Token name;
+  }
+
+  static class FStirng extends Expr {
+    List<Expr> exprList = new ArrayList<>();
+    String literal;
+
+    public FStirng(String literal, List<Expr> exprList) {
+      this.literal = literal;
+      this.exprList = exprList;
+    }
+
+    @Override
+    <R> R accept(Visitor<R> visitor) {
+      return visitor.visitFStringExpr(this);
+    }
   }
 
   abstract <R> R accept(Visitor<R> visitor);

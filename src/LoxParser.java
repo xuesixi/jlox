@@ -1,6 +1,8 @@
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class LoxParser {
 
@@ -374,10 +376,38 @@ public class LoxParser {
             return new Expr.Grouping(expr);
         }
         if (match(TokenType.IDENTIFIER)) {
+            if (previous().lexeme.equalsIgnoreCase("f") && peek().type == TokenType.STRING) {
+//                return new Expr.FStirng(previous().literal.toString());
+                return fstring();
+            }
             return new Expr.Variable(previous());
         }
         // unrecognized token
         throw parseError(peek(), "The token is at the inappropriate position");
+    }
+
+
+    /**
+     * 现有的问题：仅用正则表达式无法处理嵌套的{}，可以考虑改成栈式解析器
+     * @return
+     */
+    private Expr fstring() {
+        Token str = consume(TokenType.STRING, "as FStirng, here should be a string");
+        String literal = str.literal.toString();
+        String new_literal = literal.replaceAll("\\{.*?}", "%s");
+        List<Expr> exprList = new ArrayList<>();
+
+        Pattern pattern = Pattern.compile("\\{(.*?)}");
+        Matcher matcher = pattern.matcher(literal);
+
+        while (matcher.find()) {
+            String exp = matcher.group(1);
+            LoxScanner scanner = new LoxScanner(exp);
+            LoxParser parser = new LoxParser(scanner.scanTokens());
+            Expr expr = parser.expression();
+            exprList.add(expr);
+        }
+        return new Expr.FStirng(new_literal, exprList);
     }
 
 

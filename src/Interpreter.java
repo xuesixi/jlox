@@ -280,6 +280,15 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
 
     @Override
+    public Object visitFStringExpr(Expr.FStirng expr) {
+        Object[] values = new Object[expr.exprList.size()];
+        for (int i = 0; i < expr.exprList.size(); i++) {
+            values[i] = evaluate(expr.exprList.get(i));
+        }
+        return expr.literal.formatted(values);
+    }
+
+    @Override
     public Void visitBlockStmt(Stmt.Block stmt) {
         Environment newEnv = new Environment(this.environment);
         executeWithEnvironment(stmt.statements, newEnv);

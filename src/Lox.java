@@ -9,19 +9,21 @@ public class Lox {
 
     public static boolean hadError = false;
     public static boolean hadRuntimeError = false;
-    public static boolean repl = false; // 调用 runPrompt 的时候，该变量会被设为 true。这会导致在所有表达式语句输出其值。
+    public static boolean repl = false; // 调用 runPrompt 的时候，该变量会被设为 true。这会导致返回值不为 nil 的表达式语句输出其值。
 
     public static Interpreter interpreter = new Interpreter();
 
     public static void main(String[] args) throws IOException {
         if (args.length == 1) {
             System.out.println("running file: " + args[0]);
+            System.out.println();
             runFile(args[0]);
         } else if (args.length == 0) {
             System.out.println("running prompt");
+            System.out.println();
             runPrompt();
         } else {
-            System.out.println("Error");
+            System.out.println("Error. You can have 0 argument to run the repl, or 1 argument to run a specific lox file");
         }
     }
 
