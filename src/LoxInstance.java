@@ -12,7 +12,11 @@ public class LoxInstance {
         if (fields.containsKey(field.lexeme)) {
             return fields.get(field.lexeme);
         }
-        throw new LoxRuntimeError(field, "the field does not exist");
+        LoxFunction original = loxClass.getMethod(field.lexeme);
+        if (original == null) {
+            throw new LoxRuntimeError(field, "the field or method does not exist");
+        }
+        return original.binding(this);
     }
 
     public void set(Token field, Object value) {

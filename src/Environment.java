@@ -21,12 +21,16 @@ public class Environment {
         }
     }
 
-    public Object getAt(Token name, int distance) {
+    public Object getAt(String name, int distance) {
         Environment curr = this;
         for (int i = 0; i < distance; i++) {
             curr = curr.enclosing;
         }
-        return curr.values.get(name.lexeme);
+        return curr.values.get(name);
+    }
+
+    public Object getAt(Token name, int distance) {
+        return getAt(name.lexeme, distance);
     }
 
     public void define(String name, Object value) {

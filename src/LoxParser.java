@@ -87,7 +87,8 @@ public class LoxParser {
             return forStatement();
         } else if (match(TokenType.RETURN)) {
             return returnStatement();
-        } else {
+        }
+        else {
             return expressionStatement();
         }
     }
@@ -377,10 +378,12 @@ public class LoxParser {
         }
         if (match(TokenType.IDENTIFIER)) {
             if (previous().lexeme.equalsIgnoreCase("f") && peek().type == TokenType.STRING) {
-//                return new Expr.FStirng(previous().literal.toString());
                 return fstring();
             }
             return new Expr.Variable(previous());
+        }
+        if (match(TokenType.THIS)) {
+            return new Expr.This(previous());
         }
         // unrecognized token
         throw parseError(peek(), "The token is at the inappropriate position");
@@ -404,7 +407,7 @@ public class LoxParser {
             String exp = matcher.group(1);
             LoxScanner scanner = new LoxScanner(exp);
             LoxParser parser = new LoxParser(scanner.scanTokens());
-            Expr expr = parser.expression();
+            Expr expr = parser.expression(); // 对于每个{}中的内容，我们只读取第一个表达式
             exprList.add(expr);
         }
         return new Expr.FStirng(new_literal, exprList);

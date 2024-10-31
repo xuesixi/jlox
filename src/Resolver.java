@@ -10,9 +10,11 @@ public class Resolver implements Stmt.Visitor<Void>, Expr.Visitor<Void> {
     private Interpreter interpreter;
     private Stack<HashSet<String >> scopes;
     private FunctionType functionType; // 进入函数时会被设置。如果在非函数预警下遇到了 return 语句，产生错误。
+    private ClassType classType;
 
     public Resolver(Interpreter interpreter) {
         functionType = FunctionType.None;
+        classType = ClassType.None;
         this.interpreter = interpreter;
         scopes = new Stack<>();
     }
@@ -136,6 +138,16 @@ public class Resolver implements Stmt.Visitor<Void>, Expr.Visitor<Void> {
         return null;
     }
 
+    @Override
+    public Void visitThisExpr(Expr.This expr) {
+        if (classType != ClassType.Class) {
+            Lox.resolvingError(expr.keyword.line, expr.keyword.lexeme, "the return keyword is only allowed inside a function");
+            return null;
+        }
+        resolveLocal(expr, expr.keyword);
+        return null;
+    }
+
     /**
      * block具有新一层 scope
      * @param stmt
@@ -154,6 +166,20 @@ public class Resolver implements Stmt.Visitor<Void>, Expr.Visitor<Void> {
     @Override
     public Void visitClassStmt(Stmt.Class stmt) {
         define(stmt.name);
+        ClassType old = classType;
+        classType = ClassType.Class;
+        beginScope();
+        scopes.peek().add("this");
+        for (Stmt.Function method : stmt.methods) {
+            define(method.name);
+            if (method.name.lexeme.equals("init")) {
+                resolveFunction(method, FunctionType.Initializer);
+            } else {
+                resolveFunction(method, FunctionType.Function);
+            }
+        }
+        endScope();
+        classType = old;
         return null;
     }
 
@@ -207,6 +233,10 @@ public class Resolver implements Stmt.Visitor<Void>, Expr.Visitor<Void> {
 
     @Override
     public Void visitReturnStmt(Stmt.Return stmt) {
+        if (functionType == FunctionType.Initializer) {
+            Lox.resolvingError(stmt.keyword.line, stmt.keyword.lexeme, "the return keyword is not allowed inside an initializer");
+            return null;
+        }
         if (functionType != FunctionType.Function) {
             Lox.resolvingError(stmt.keyword.line, stmt.keyword.lexeme, "the return keyword is only allowed inside a function");
             return null;
@@ -248,5 +278,11 @@ public class Resolver implements Stmt.Visitor<Void>, Expr.Visitor<Void> {
     private enum FunctionType {
         None,
         Function,
+        Initializer,
+    }
+
+    private enum ClassType {
+        None,
+        Class,
     }
 }

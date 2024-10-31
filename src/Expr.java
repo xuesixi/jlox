@@ -15,6 +15,7 @@ abstract class Expr {
     R visitUnaryExpr(Unary expr);
     R visitVariableExpr(Variable expr);
     R visitFStringExpr(FStirng expr);
+    R visitThisExpr(This expr);
   }
   static class Assign extends Expr {
     Assign(Token name, Expr value) {
@@ -160,7 +161,7 @@ abstract class Expr {
   }
 
   static class FStirng extends Expr {
-    List<Expr> exprList = new ArrayList<>();
+    List<Expr> exprList;
     String literal;
 
     public FStirng(String literal, List<Expr> exprList) {
@@ -171,6 +172,20 @@ abstract class Expr {
     @Override
     <R> R accept(Visitor<R> visitor) {
       return visitor.visitFStringExpr(this);
+    }
+  }
+
+  static class This extends Expr {
+    Token keyword;
+
+    public This(Token keyword) {
+      this.keyword = keyword;
+    }
+
+
+    @Override
+    <R> R accept(Visitor<R> visitor) {
+      return visitor.visitThisExpr(this);
     }
   }
 

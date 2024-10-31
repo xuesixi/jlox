@@ -64,6 +64,15 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         locals.put(expr, distance);
     }
 
+    private Object lookupVariable(Expr expr, Token token) {
+        Integer distance = locals.get(expr);
+        if (distance == null) {
+            return global.get(token);
+        } else {
+            return environment.getAt(token, distance);
+        }
+    }
+
     /**
      * 切换到目标环境，执行语句，然后切换回原环境
      * @param statements 要执行的语句
@@ -271,21 +280,21 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
     @Override
     public Object visitVariableExpr(Expr.Variable expr) {
-        Integer distance = locals.get(expr);
-        if (distance == null) {
-            return global.get(expr.name);
-        } else {
-            return environment.getAt(expr.name, distance);
-        }
+        return lookupVariable(expr, expr.name);
     }
 
     @Override
     public Object visitFStringExpr(Expr.FStirng expr) {
         Object[] values = new Object[expr.exprList.size()];
         for (int i = 0; i < expr.exprList.size(); i++) {
-            values[i] = evaluate(expr.exprList.get(i));
+            values[i] = stringify(evaluate(expr.exprList.get(i)));
         }
         return expr.literal.formatted(values);
+    }
+
+    @Override
+    public Object visitThisExpr(Expr.This expr) {
+        return lookupVariable(expr, expr.keyword);
     }
 
     @Override
@@ -297,7 +306,12 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
     @Override
     public Void visitClassStmt(Stmt.Class stmt) {
-        LoxClass loxClass = new LoxClass(stmt.name.lexeme);
+        HashMap<String , LoxFunction> methods = new HashMap<>();
+        for (Stmt.Function method : stmt.methods) {
+            LoxFunction function = new LoxFunction(method, this.environment, method.name.lexeme.equals("init"));
+            methods.put(method.name.lexeme, function);
+        }
+        LoxClass loxClass = new LoxClass(stmt.name.lexeme, methods);
         environment.define(stmt.name.lexeme, loxClass);
         return null;
     }
@@ -316,7 +330,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
     @Override
     public Void visitFunctionStmt(Stmt.Function stmt) {
-        LoxFunction function = new LoxFunction(stmt, environment);
+        LoxFunction function = new LoxFunction(stmt, environment, false);
         environment.define(stmt.name.lexeme, function);
         return null;
     }

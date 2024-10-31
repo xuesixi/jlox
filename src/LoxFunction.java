@@ -1,12 +1,16 @@
+import jdk.jshell.ImportSnippet;
+
 import java.util.List;
 
 public class LoxFunction implements LoxCallable{
-    private Stmt.Function declaration;
-    private Environment closure;
+    private final Stmt.Function declaration;
+    private final Environment closure;
+    private final  boolean isInitializer;
 
-    public LoxFunction(Stmt.Function declaration, Environment closure) {
+    public LoxFunction(Stmt.Function declaration, Environment closure, boolean isInitializer) {
         this.declaration = declaration;
         this.closure = closure;
+        this.isInitializer = isInitializer;
     }
 
     @Override
@@ -26,7 +30,17 @@ public class LoxFunction implements LoxCallable{
         }catch (LoxRuntimeError.LoxReturn e) {
             returnValue = e.value;
         }
+        // initializer always returns the object itself (explicit return value is disallowed)
+        if (isInitializer) {
+            return closure.getAt("this", 0);
+        }
         return returnValue;
+    }
+
+    public LoxFunction binding(LoxInstance instance) {
+        Environment newEnv = new Environment(this.closure);
+        newEnv.define("this", instance);
+        return new LoxFunction(this.declaration, newEnv, isInitializer);
     }
 
     @Override

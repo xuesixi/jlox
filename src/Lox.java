@@ -104,14 +104,11 @@ public class Lox {
      * @param error 捕获到的运行时错误
      */
     static void reportRuntimeError(LoxRuntimeError error) {
-//        System.err.println("Runtime error: " + error.getMessage() +
-//                "\n[line " + error.token.line + "]");
         System.out.printf("[Line %d] Runtime error: %s: \"%s\"\n", error.token.line, error.getMessage(), error.token.lexeme);
         hadRuntimeError = true;
     }
 
     public static void report(int line, String where, String message) {
-//        System.err.println("[line " + line + "] error \"" + where + "\": " + message);
         System.out.printf("[line %d] %s: \"%s\"\n", line, message, where);
         hadError = true;
     }

@@ -12,6 +12,6 @@ public class Token {
     }
 
     public String toString() {
-        return type + " " + lexeme + " " + literal;
+        return "[%s, %s, %s] at line: %d".formatted(type, lexeme, literal, line);
     }
 }
