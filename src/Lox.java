@@ -104,7 +104,11 @@ public class Lox {
      * @param error 捕获到的运行时错误
      */
     static void reportRuntimeError(LoxRuntimeError error) {
-        System.out.printf("[Line %d] Runtime error: %s: \"%s\"\n", error.token.line, error.getMessage(), error.token.lexeme);
+        if (error.token != null) {
+            System.out.printf("[Line %d] Runtime error: %s: \"%s\"\n", error.token.line, error.getMessage(), error.token.lexeme);
+        } else {
+            System.out.printf("[Line Unknown] Runtime error: %s\n", error.getMessage());
+        }
         hadRuntimeError = true;
     }
 

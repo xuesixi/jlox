@@ -1,3 +1,5 @@
+import com.sun.jdi.connect.IllegalConnectorArgumentsException;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -164,11 +166,22 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     @Override
     public Object visitAssignExpr(Expr.Assign expr) {
         Object value = evaluate(expr.value);
+//        Integer distance = locals.get(expr);
+//        if (distance == null) {
+//            global.assign(expr.name, value);;
+//        } else {
+//            environment.assignAt(expr.name, value, distance);
+//        }
+//        return value;
+        return varAssignHelper(expr, expr.name, value);
+    }
+
+    public Object varAssignHelper(Expr expr, Token varName, Object value) {
         Integer distance = locals.get(expr);
         if (distance == null) {
-            global.assign(expr.name, value);;
+            global.assign(varName, value);
         } else {
-            environment.assignAt(expr.name, value, distance);
+            environment.assignAt(varName, value, distance);
         }
         return value;
     }
@@ -242,9 +255,6 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         Object instance = evaluate(expr.object);
         if (instance instanceof LoxInstance) {
             return ((LoxInstance) instance).get(expr.name);
-//        } else if (instance instanceof LoxArray && expr.name.lexeme.equals("length")) {
-//            int length = ((LoxArray) instance).getLength();
-//            return Double.valueOf(length);
         }
         throw new LoxRuntimeError(expr.name, "only object supports field getting");
     }
@@ -272,13 +282,23 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
     @Override
     public Object visitSetExpr(Expr.Set expr) {
-        Object instance = evaluate(expr.object);
+//        Object instance = evaluate(expr.object);
         Object value = evaluate(expr.value);
+        return setHelper(expr.object, expr.name, value);
+//        if (instance instanceof LoxInstance) {
+//            ((LoxInstance) instance).set(expr.name, value);
+//            return value;
+//        }
+//        throw new LoxRuntimeError(expr.name, "only object supports field setting");
+    }
+
+    public Object setHelper(Expr targetObject, Token field, Object value) {
+        Object instance = evaluate(targetObject);
         if (instance instanceof LoxInstance) {
-            ((LoxInstance) instance).set(expr.name, value);
+            ((LoxInstance) instance).set(field, value);
             return value;
         }
-        throw new LoxRuntimeError(expr.name, "only object supports field setting");
+        throw new LoxRuntimeError(field, "only object supports field setting");
     }
 
     @Override
@@ -350,20 +370,39 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     @Override
     public Object visitArraySetExpr(Expr.ArraySetExpr expr) {
         Object value = evaluate(expr.value);
-        Object arr = evaluate(expr.array);
-        Object indexValue = evaluate(expr.index);
+        return arraySetHelper(expr.array, expr.index, expr.rightBracket, value);
+//        Object arr = evaluate(expr.array);
+//        Object indexValue = evaluate(expr.index);
+//        if (!(arr instanceof LoxArray)) {
+//            throw new LoxRuntimeError(expr.rightBracket, "%s is not a valid array".formatted(stringify(arr)));
+//        }
+//        int index = validUint(indexValue);
+//        if (index <= -1) {
+//            throw new LoxRuntimeError(expr.rightBracket, "%s is not a valid index".formatted(stringify(indexValue)));
+//        }
+//        try {
+//            ((LoxArray) arr).setAtIndex(index, value);
+//            return value;
+//        }catch (IndexOutOfBoundsException e) {
+//            throw new LoxRuntimeError(expr.rightBracket, "%d is out of bound of %d".formatted(index, ((LoxArray) arr).getLength()));
+//        }
+    }
+
+    public Object arraySetHelper(Expr arrExpr, Expr indexExpr, Token keyword, Object value) {
+        Object arr = evaluate(arrExpr);
+        Object indexValue = evaluate(indexExpr);
         if (!(arr instanceof LoxArray)) {
-            throw new LoxRuntimeError(expr.rightBracket, "%s is not a valid array".formatted(stringify(arr)));
+            throw new LoxRuntimeError(keyword, "%s is not a valid array".formatted(stringify(arr)));
         }
         int index = validUint(indexValue);
         if (index <= -1) {
-            throw new LoxRuntimeError(expr.rightBracket, "%s is not a valid index".formatted(stringify(indexValue)));
+            throw new LoxRuntimeError(keyword, "%s is not a valid index".formatted(stringify(indexValue)));
         }
         try {
             ((LoxArray) arr).setAtIndex(index, value);
             return value;
         }catch (IndexOutOfBoundsException e) {
-            throw new LoxRuntimeError(expr.rightBracket, "%d is out of bound of %d".formatted(index, ((LoxArray) arr).getLength()));
+            throw new LoxRuntimeError(keyword, "%d is out of bound of %d".formatted(index, ((LoxArray) arr).getLength()));
         }
     }
 
@@ -374,6 +413,35 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
             valueList.add(evaluate(e));
         }
         return new LoxArray(valueList);
+    }
+
+    @Override
+    public Object visitTupleUnpackExpr(Expr.TupleUnpackExpr expr) {
+        Object rightValue = evaluate(expr.right);
+        if (!(rightValue instanceof LoxArray)) {
+            throw new LoxRuntimeError(expr.equal, "The right value of assign is not an array");
+        }
+        LoxArray arr = (LoxArray) rightValue;
+        int leftSize = expr.left.exprList.size();
+        if (leftSize > arr.getLength()) {
+            throw new LoxRuntimeError(expr.equal, "Unbalanced unpacking with left of size %d and right of size %d".formatted(leftSize, arr.getLength()));
+        }
+        for (int i = 0; i < leftSize; i++) {
+            Expr e = expr.left.exprList.get(i);
+            Object value = arr.getAtIndex(i);
+            if (e instanceof Expr.Variable) {
+                varAssignHelper(e, ((Expr.Variable) e).name, value);
+            } else if (e instanceof Expr.Get) {
+                Expr.Get temp = (Expr.Get) e;
+                setHelper(temp.object, temp.name, value);
+            } else if (e instanceof Expr.ArrayGetExpr) {
+                Expr.ArrayGetExpr temp = (Expr.ArrayGetExpr) e;
+                arraySetHelper(temp.array, temp.index, temp.rightBracket, value);
+            } else if (e instanceof Expr.TupleExpr) {
+              throw new LoxRuntimeError(expr.equal, "No nested tuple unpacking supported yet")  ;
+            }
+        }
+        return null;
     }
 
     @Override

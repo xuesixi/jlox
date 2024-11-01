@@ -3,7 +3,9 @@ import java.util.List;
 import java.util.Stack;
 
 /**
- * 对于每个语句，判断它其中出现的变量的层级
+ * <p>对于每个语句，判断它其中出现的变量的层级</p>
+ * resolve 只关心变量。如果是一个链式语句，那么也只关心其中的第一个变量。
+ * 比如说<pre>a.b().c.d()</pre>这样的语句，我们只resolve第一个 a。剩余的检查都发生在运行时。
  */
 public class Resolver implements Stmt.Visitor<Void>, Expr.Visitor<Void> {
     private final Interpreter interpreter;
@@ -173,6 +175,13 @@ public class Resolver implements Stmt.Visitor<Void>, Expr.Visitor<Void> {
         for (Expr e : expr.exprList) {
             resolve(e);
         }
+        return null;
+    }
+
+    @Override
+    public Void visitTupleUnpackExpr(Expr.TupleUnpackExpr expr) {
+        resolve(expr.right);
+        resolve(expr.left);
         return null;
     }
 

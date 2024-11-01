@@ -266,6 +266,9 @@ public class LoxParser {
                 Expr value = assignment();
                 Expr.ArrayGetExpr access = (Expr.ArrayGetExpr) expr;
                 return new Expr.ArraySetExpr(access.array, access.index, value, access.rightBracket );
+            } else if (expr instanceof Expr.TupleExpr) {
+                Expr right = assignment();
+                return new Expr.TupleUnpackExpr((Expr.TupleExpr) expr, right, equal);
             }
             parseError(equal, "Invalid assignment target");
         }
@@ -399,9 +402,9 @@ public class LoxParser {
         }
         if (match(TokenType.LEFT_PAREN)) {
             Expr expr = expression();
-            List<Expr> exprList = new ArrayList<>();
-            exprList.add(expr);
-            if (peek().type == TokenType.COMMA) {
+            if (match(TokenType.COMMA)) {
+                List<Expr> exprList = new ArrayList<>();
+                exprList.add(expr);
                 return tuple(exprList);
             }
             consume(TokenType.RIGHT_PAREN, "Missing right parenthesis");
@@ -425,16 +428,22 @@ public class LoxParser {
     }
 
     /**
-     * 对于形如(a, b, c, d) 的元组，在调用该函数之前，( 和 a 已经被消耗，且已经确定下一个 token 是 ","
+     * 匹配形如 a, b, c, d) 的元组。
      * @return 一个元祖表达式。该函数会消耗最后的 )
      */
     private Expr tuple(List<Expr> exprList) {
-        while (!isEnd() && peek().type != TokenType.RIGHT_PAREN) {
-            consume(TokenType.COMMA, "Tuple items need to be separated by comma");
+        do {
             exprList.add(expression());
-        }
+        } while (!isEnd() && match(TokenType.COMMA));
         consume(TokenType.RIGHT_PAREN, "Tuple needs to have a )");
         return new Expr.TupleExpr(exprList);
+
+//        while (!isEnd() && peek().type != TokenType.RIGHT_PAREN) {
+//            consume(TokenType.COMMA, "Tuple items need to be separated by comma");
+//            exprList.add(expression());
+//        }
+//        consume(TokenType.RIGHT_PAREN, "Tuple needs to have a )");
+//        return new Expr.TupleExpr(exprList);
     }
 
 
@@ -461,6 +470,9 @@ public class LoxParser {
         return new Expr.FString(new_literal, exprList);
     }
 
+    /**
+     * @return 形如 a][b][c] 的表达式
+     */
     private List<Expr> arrayCreation() {
         List<Expr> exprList = new ArrayList<>();
         do {
