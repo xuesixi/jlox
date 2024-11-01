@@ -160,6 +160,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
 
 
+    // 特指变量赋值。
     @Override
     public Object visitAssignExpr(Expr.Assign expr) {
         Object value = evaluate(expr.value);
@@ -241,9 +242,9 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         Object instance = evaluate(expr.object);
         if (instance instanceof LoxInstance) {
             return ((LoxInstance) instance).get(expr.name);
-        } else if (instance instanceof LoxArray && expr.name.lexeme.equals("length")) {
-            int length = ((LoxArray) instance).getLength();
-            return Double.valueOf(length);
+//        } else if (instance instanceof LoxArray && expr.name.lexeme.equals("length")) {
+//            int length = ((LoxArray) instance).getLength();
+//            return Double.valueOf(length);
         }
         throw new LoxRuntimeError(expr.name, "only object supports field getting");
     }
@@ -339,7 +340,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
             throw new LoxRuntimeError(expr.rightBracket, "%s is not a valid index".formatted(stringify(indexValue)));
         }
         try {
-            return ((LoxArray) arr).atIndex(index);
+            return ((LoxArray) arr).getAtIndex(index);
         }catch (IndexOutOfBoundsException e) {
             throw new LoxRuntimeError(expr.rightBracket, "%d is out of bound of %d".formatted(index, ((LoxArray) arr).getLength()));
         }
@@ -364,6 +365,15 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         }catch (IndexOutOfBoundsException e) {
             throw new LoxRuntimeError(expr.rightBracket, "%d is out of bound of %d".formatted(index, ((LoxArray) arr).getLength()));
         }
+    }
+
+    @Override
+    public Object visitTupleExpr(Expr.TupleExpr expr) {
+        List<Object> valueList = new ArrayList<>();
+        for (Expr e : expr.exprList) {
+            valueList.add(evaluate(e));
+        }
+        return new LoxArray(valueList);
     }
 
     @Override

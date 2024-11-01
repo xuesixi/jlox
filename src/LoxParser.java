@@ -1,5 +1,6 @@
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -246,6 +247,10 @@ public class LoxParser {
         return assignment();
     }
 
+    /**
+     * 所有赋值语句
+     * @return 变量赋值语句，对象字段赋值语句，数组赋值语句
+     */
     private Expr assignment() {
         Expr expr = or();
         if (match(TokenType.EQUAL)) {
@@ -394,6 +399,11 @@ public class LoxParser {
         }
         if (match(TokenType.LEFT_PAREN)) {
             Expr expr = expression();
+            List<Expr> exprList = new ArrayList<>();
+            exprList.add(expr);
+            if (peek().type == TokenType.COMMA) {
+                return tuple(exprList);
+            }
             consume(TokenType.RIGHT_PAREN, "Missing right parenthesis");
             return new Expr.Grouping(expr);
         }
@@ -412,6 +422,19 @@ public class LoxParser {
         }
         // unrecognized token
         throw parseError(peek(), "The token is at the inappropriate position");
+    }
+
+    /**
+     * 对于形如(a, b, c, d) 的元组，在调用该函数之前，( 和 a 已经被消耗，且已经确定下一个 token 是 ","
+     * @return 一个元祖表达式。该函数会消耗最后的 )
+     */
+    private Expr tuple(List<Expr> exprList) {
+        while (!isEnd() && peek().type != TokenType.RIGHT_PAREN) {
+            consume(TokenType.COMMA, "Tuple items need to be separated by comma");
+            exprList.add(expression());
+        }
+        consume(TokenType.RIGHT_PAREN, "Tuple needs to have a )");
+        return new Expr.TupleExpr(exprList);
     }
 
 

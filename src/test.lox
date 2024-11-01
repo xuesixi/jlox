@@ -10,6 +10,10 @@ class Animal {
         print f "the static num is 20";
     }
 
+    static mult(a, b) {
+        return a * b;
+    }
+
     init(name, age) {
         this.name = name;
         this.age = age;
@@ -25,12 +29,8 @@ class Animal {
         showNum();
     }
 
-    static mult(a, b) {
-        return a * b;
-    }
-
-    mult(a, b) {
-        return a * b;
+    show() {
+        return (this.name, this.age);
     }
 }
 
@@ -44,11 +44,6 @@ fun table(x, y) {
     return nums;
 }
 
-var dog = Animal("anda", 12);
-
-var t = table(dog.mult(Animal.PI, 2), 3);
-
-for (var i = 0; i < t.length; i = i + 1) {
-    print t[i];
-}
-
+var dog = Animal("anda", 4);
+var t = dog.show();
+print t;

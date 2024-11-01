@@ -17,6 +17,7 @@ public abstract class Expr {
     R visitArrayCreationExpr(ArrayCreationExpr expr);
     R visitArrayGetExpr(ArrayGetExpr expr);
     R visitArraySetExpr(ArraySetExpr expr);
+    R visitTupleExpr(TupleExpr expr);
   }
   public static class Assign extends Expr {
     Assign(Token name, Expr value) {
@@ -239,6 +240,20 @@ public abstract class Expr {
     @Override
     <R> R accept(Visitor<R> visitor) {
       return visitor.visitArraySetExpr(this);
+    }
+  }
+
+  public static class TupleExpr extends Expr {
+
+    List<Expr> exprList;
+
+    public TupleExpr(List<Expr> exprList) {
+      this.exprList = exprList;
+    }
+
+    @Override
+    <R> R accept(Visitor<R> visitor) {
+      return visitor.visitTupleExpr(this);
     }
   }
 

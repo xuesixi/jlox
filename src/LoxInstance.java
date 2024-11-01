@@ -28,7 +28,11 @@ public class LoxInstance {
     }
 
     public void set(Token field, Object value) {
-        fields.put(field.lexeme, value);
+        set(field.lexeme, value);
+    }
+
+    public void set(String field, Object value) {
+        fields.put(field, value);
     }
 
     @Override

@@ -1,17 +1,32 @@
 import java.util.Arrays;
+import java.util.List;
 
-public class LoxArray {
+public class LoxArray extends LoxInstance{
     private final Object[] backing;
 
-    public LoxArray(int[] dimensions) {
-        int len = dimensions[0];
+    public LoxArray(int len) {
+        super((LoxClass) null);
+
         backing = new Object[len];
+        this.set("length", (double) len);
+    }
+
+    public LoxArray(int[] dimensions) {
+        this(dimensions[0]);
         if (dimensions.length == 1) {
             return;
         }
         int[] remaining = Arrays.copyOfRange(dimensions, 1, dimensions.length);
-        for (int i = 0; i < len; i++) {
+        for (int i = 0; i < backing.length; i++) {
             backing[i] = new LoxArray(remaining);
+        }
+    }
+
+    public LoxArray(List<Object> items) {
+        this(items.size());
+        int len = items.size();
+        for (int i = 0; i < len; i++) {
+            backing[i] = items.get(i);
         }
     }
 
@@ -20,7 +35,7 @@ public class LoxArray {
         return backing.length;
     }
 
-    public Object atIndex(int index) {
+    public Object getAtIndex(int index) {
         return backing[index];
     }
 
