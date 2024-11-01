@@ -1,8 +1,6 @@
-
-import java.util.ArrayList;
 import java.util.List;
 
-abstract class Expr {
+public abstract class Expr {
   interface Visitor<R> {
     R visitAssignExpr(Assign expr);
     R visitBinaryExpr(Binary expr);
@@ -14,13 +12,13 @@ abstract class Expr {
     R visitSetExpr(Set expr);
     R visitUnaryExpr(Unary expr);
     R visitVariableExpr(Variable expr);
-    R visitFStringExpr(FStirng expr);
+    R visitFStringExpr(FString expr);
     R visitThisExpr(This expr);
-    R visitArrayCreation(ArrayCreation expr);
-    R visitArrayAccess(ArrayAccess expr);
-    R visitArraySet(ArraySet expr);
+    R visitArrayCreationExpr(ArrayCreationExpr expr);
+    R visitArrayGetExpr(ArrayGetExpr expr);
+    R visitArraySetExpr(ArraySetExpr expr);
   }
-  static class Assign extends Expr {
+  public static class Assign extends Expr {
     Assign(Token name, Expr value) {
       this.name = name;
       this.value = value;
@@ -34,7 +32,7 @@ abstract class Expr {
     final Token name;
     final Expr value;
   }
-  static class Binary extends Expr {
+  public static class Binary extends Expr {
     Binary(Expr left, Token operator, Expr right) {
       this.left = left;
       this.operator = operator;
@@ -50,7 +48,7 @@ abstract class Expr {
     final Token operator;
     final Expr right;
   }
-  static class Call extends Expr {
+  public static class Call extends Expr {
     Call(Expr callee, Token paren, List<Expr> arguments) {
       this.callee = callee;
       this.paren = paren;
@@ -66,7 +64,7 @@ abstract class Expr {
     final Token paren;
     final List<Expr> arguments;
   }
-  static class Get extends Expr {
+  public static class Get extends Expr {
     Get(Expr object, Token name) {
       this.object = object;
       this.name = name;
@@ -80,7 +78,7 @@ abstract class Expr {
     final Expr object;
     final Token name;
   }
-  static class Grouping extends Expr {
+  public static class Grouping extends Expr {
     Grouping(Expr expression) {
       this.expression = expression;
     }
@@ -92,7 +90,7 @@ abstract class Expr {
 
     final Expr expression;
   }
-  static class Literal extends Expr {
+  public static class Literal extends Expr {
     Literal(Object value) {
       this.value = value;
     }
@@ -104,7 +102,7 @@ abstract class Expr {
 
     final Object value;
   }
-  static class Logical extends Expr {
+  public static class Logical extends Expr {
     Logical(Expr left, Token operator, Expr right) {
       this.left = left;
       this.operator = operator;
@@ -120,7 +118,7 @@ abstract class Expr {
     final Token operator;
     final Expr right;
   }
-  static class Set extends Expr {
+  public static class Set extends Expr {
     Set(Expr object, Token name, Expr value) {
       this.object = object;
       this.name = name;
@@ -136,7 +134,7 @@ abstract class Expr {
     final Token name;
     final Expr value;
   }
-  static class Unary extends Expr {
+  public static class Unary extends Expr {
     Unary(Token operator, Expr right) {
       this.operator = operator;
       this.right = right;
@@ -150,7 +148,7 @@ abstract class Expr {
     final Token operator;
     final Expr right;
   }
-  static class Variable extends Expr {
+  public static class Variable extends Expr {
     Variable(Token name) {
       this.name = name;
     }
@@ -163,11 +161,11 @@ abstract class Expr {
     final Token name;
   }
 
-  static class FStirng extends Expr {
+  public static class FString extends Expr {
     List<Expr> exprList;
     String literal;
 
-    public FStirng(String literal, List<Expr> exprList) {
+    public FString(String literal, List<Expr> exprList) {
       this.literal = literal;
       this.exprList = exprList;
     }
@@ -178,7 +176,7 @@ abstract class Expr {
     }
   }
 
-  static class This extends Expr {
+  public static class This extends Expr {
     Token keyword;
 
     public This(Token keyword) {
@@ -192,28 +190,28 @@ abstract class Expr {
     }
   }
 
-  static class ArrayCreation extends Expr {
-    Expr length;
+  public static class ArrayCreationExpr extends Expr {
+    List<Expr> lengthList;
     Token rightBracket;
 
-    public ArrayCreation( Expr length, Token rightBracket) {
-      this.length = length;
+    public ArrayCreationExpr(List<Expr> lengthList, Token rightBracket) {
+      this.lengthList = lengthList;
       this.rightBracket = rightBracket;
     }
 
     @Override
     <R> R accept(Visitor<R> visitor) {
-      return visitor.visitArrayCreation(this);
+      return visitor.visitArrayCreationExpr(this);
     }
   }
 
-  static class ArrayAccess extends Expr {
+  public static class ArrayGetExpr extends Expr {
 
     Expr array;
     Expr index;
     Token rightBracket;
 
-    public ArrayAccess(Expr array, Expr index, Token rightBracket) {
+    public ArrayGetExpr(Expr array, Expr index, Token rightBracket) {
       this.array = array;
       this.index = index;
       this.rightBracket = rightBracket;
@@ -221,17 +219,17 @@ abstract class Expr {
 
     @Override
     <R> R accept(Visitor<R> visitor) {
-      return visitor.visitArrayAccess(this);
+      return visitor.visitArrayGetExpr(this);
     }
   }
 
-  static class ArraySet extends Expr {
+  public static class ArraySetExpr extends Expr {
     Expr array;
     Expr index;
     Expr value;
     Token rightBracket;
 
-    public ArraySet(Expr array, Expr index, Expr value, Token rightBracket) {
+    public ArraySetExpr(Expr array, Expr index, Expr value, Token rightBracket) {
       this.array = array;
       this.index = index;
       this.value = value;
@@ -240,7 +238,7 @@ abstract class Expr {
 
     @Override
     <R> R accept(Visitor<R> visitor) {
-      return visitor.visitArraySet(this);
+      return visitor.visitArraySetExpr(this);
     }
   }
 

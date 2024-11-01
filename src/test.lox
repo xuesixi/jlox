@@ -24,12 +24,31 @@ class Animal {
         print f "the animal {this.name} with age {this.age} is running";
         showNum();
     }
+
+    static mult(a, b) {
+        return a * b;
+    }
+
+    mult(a, b) {
+        return a * b;
+    }
 }
 
-fun show() {
-
+fun table(x, y) {
+    var nums = [x][y];
+    for (var i = 0; i < nums.length; i = i + 1) {
+        for (var n = 0; n < nums[i].length; n = n + 1) {
+            nums[i][n] = f "({i}:{n})";
+        }
+    }
+    return nums;
 }
 
-var dog = Animal("anda", 10);
-var nums = [10];
-print f "the area of a circle with radius 5 is {Animal.area(5)}";
+var dog = Animal("anda", 12);
+
+var t = table(dog.mult(Animal.PI, 2), 3);
+
+for (var i = 0; i < t.length; i = i + 1) {
+    print t[i];
+}
+

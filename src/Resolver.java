@@ -1,4 +1,3 @@
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Stack;
@@ -7,8 +6,8 @@ import java.util.Stack;
  * 对于每个语句，判断它其中出现的变量的层级
  */
 public class Resolver implements Stmt.Visitor<Void>, Expr.Visitor<Void> {
-    private Interpreter interpreter;
-    private Stack<HashSet<String >> scopes;
+    private final Interpreter interpreter;
+    private final Stack<HashSet<String >> scopes;
     private FunctionType functionType; // 进入函数时会被设置。如果在非函数预警下遇到了 return 语句，产生错误。
     private ClassType classType;
 
@@ -57,9 +56,7 @@ public class Resolver implements Stmt.Visitor<Void>, Expr.Visitor<Void> {
     }
 
     private void define(Token name) {
-        if (scopes.isEmpty()) {
-            return;
-        } else {
+        if (!scopes.isEmpty()) {
             scopes.peek().add(name.lexeme);
         }
     }
@@ -131,7 +128,7 @@ public class Resolver implements Stmt.Visitor<Void>, Expr.Visitor<Void> {
     }
 
     @Override
-    public Void visitFStringExpr(Expr.FStirng expr) {
+    public Void visitFStringExpr(Expr.FString expr) {
         for (Expr e : expr.exprList) {
             resolve(e);
         }
@@ -149,20 +146,22 @@ public class Resolver implements Stmt.Visitor<Void>, Expr.Visitor<Void> {
     }
 
     @Override
-    public Void visitArrayCreation(Expr.ArrayCreation expr) {
-        resolve(expr.length);
+    public Void visitArrayCreationExpr(Expr.ArrayCreationExpr expr) {
+        for (Expr len : expr.lengthList) {
+            resolve(len);
+        }
         return null;
     }
 
     @Override
-    public Void visitArrayAccess(Expr.ArrayAccess expr) {
+    public Void visitArrayGetExpr(Expr.ArrayGetExpr expr) {
         resolve(expr.array);
         resolve(expr.index);
         return null;
     }
 
     @Override
-    public Void visitArraySet(Expr.ArraySet expr) {
+    public Void visitArraySetExpr(Expr.ArraySetExpr expr) {
         resolve(expr.value);
         resolve(expr.array);
         resolve(expr.index);
@@ -171,8 +170,8 @@ public class Resolver implements Stmt.Visitor<Void>, Expr.Visitor<Void> {
 
     /**
      * block具有新一层 scope
-     * @param stmt
-     * @return
+     * @param stmt block
+     * @return null
      */
     @Override
     public Void visitBlockStmt(Stmt.Block stmt) {
@@ -234,8 +233,8 @@ public class Resolver implements Stmt.Visitor<Void>, Expr.Visitor<Void> {
 
     /**
      * 函数定义有自己的 scope。参数定义在其中。
-     * @param stmt
-     * @return
+     * @param stmt function
+     * @return null
      */
     @Override
     public Void visitFunctionStmt(Stmt.Function stmt) {
@@ -279,7 +278,7 @@ public class Resolver implements Stmt.Visitor<Void>, Expr.Visitor<Void> {
     /**
      * 在当前 scope 中申明一个变量
      * @param stmt 变量申明语句
-     * @return
+     * @return null
      */
     @Override
     public Void visitVarStmt(Stmt.Var stmt) {

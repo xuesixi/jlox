@@ -31,7 +31,7 @@ public class LoxScanner {
     private int start;
     private int current;
     private int line = 1;
-    private ArrayList<Token> tokenList = new ArrayList<>();
+    private final ArrayList<Token> tokenList = new ArrayList<>();
 
     public LoxScanner(String source) {
         this.source = source;

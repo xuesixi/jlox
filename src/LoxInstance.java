@@ -1,7 +1,7 @@
 import java.util.HashMap;
 
 public class LoxInstance {
-    private LoxClass loxClass;
+    private final LoxClass loxClass;
     private HashMap<String, Object> fields = new HashMap<>();
 
     public LoxInstance(LoxClass loxClass) {
@@ -33,6 +33,11 @@ public class LoxInstance {
 
     @Override
     public String toString() {
-        return "<object: %s>".formatted(loxClass.name);
+        // LoxClass as LoxInstance has no own class
+        if (loxClass != null) {
+            return "<object: %s>".formatted(loxClass.name);
+        } else {
+            return "<object: NoClass>";
+        }
     }
 }

@@ -298,7 +298,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
 
     @Override
-    public Object visitFStringExpr(Expr.FStirng expr) {
+    public Object visitFStringExpr(Expr.FString expr) {
         Object[] values = new Object[expr.exprList.size()];
         for (int i = 0; i < expr.exprList.size(); i++) {
             values[i] = stringify(evaluate(expr.exprList.get(i)));
@@ -312,18 +312,23 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
 
     @Override
-    public Object visitArrayCreation(Expr.ArrayCreation expr) {
-        Object length = evaluate(expr.length);
+    public Object visitArrayCreationExpr(Expr.ArrayCreationExpr expr) {
 
-        int len = validUint(length);
-        if (len <= 0) {
-            throw new LoxRuntimeError(expr.rightBracket, "%s is not a valid array length".formatted(stringify(length)));
+        int[] dimensions = new int[expr.lengthList.size()];
+        for (int i = 0; i < expr.lengthList.size(); i++) {
+            Object length = evaluate(expr.lengthList.get(i));
+            int len = validUint(length);
+            if (len <= 0) {
+                throw new LoxRuntimeError(expr.rightBracket, "%s is not a valid array length".formatted(stringify(length)));
+            }
+            dimensions[i] = len;
         }
-        return new LoxArray(len);
+
+        return new LoxArray(dimensions);
     }
 
     @Override
-    public Object visitArrayAccess(Expr.ArrayAccess expr) {
+    public Object visitArrayGetExpr(Expr.ArrayGetExpr expr) {
         Object arr = evaluate(expr.array);
         Object indexValue = evaluate(expr.index);
         if (!(arr instanceof LoxArray)) {
@@ -342,7 +347,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
 
     @Override
-    public Object visitArraySet(Expr.ArraySet expr) {
+    public Object visitArraySetExpr(Expr.ArraySetExpr expr) {
         Object value = evaluate(expr.value);
         Object arr = evaluate(expr.array);
         Object indexValue = evaluate(expr.index);

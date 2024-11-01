@@ -154,7 +154,7 @@ public class LoxParser {
      * }
      * </pre>
      *
-     * @return
+     * @return while statement from for
      */
     private Stmt forStatement() {
         consume(TokenType.LEFT_PAREN, "A left parenthesis is required for for statement");
@@ -192,7 +192,7 @@ public class LoxParser {
         if (initializer != null) {
             return new Stmt.Block(Arrays.asList(initializer, loop));
         } else {
-            return new Stmt.Block(Arrays.asList(loop));
+            return new Stmt.Block(List.of(loop));
         }
     }
 
@@ -209,11 +209,11 @@ public class LoxParser {
         Expr condition = expression();
         consume(TokenType.RIGHT_PAREN, "A right parenthesis is required for if statement");
         Stmt thenStmt = statement();
-        Stmt elseStatment = null;
+        Stmt elseStatement = null;
         if (match(TokenType.ELSE)) {
-            elseStatment = statement();
+            elseStatement = statement();
         }
-        return new Stmt.If(condition, thenStmt, elseStatment);
+        return new Stmt.If(condition, thenStmt, elseStatement);
     }
 
     private List<Stmt> block() {
@@ -240,7 +240,7 @@ public class LoxParser {
     /**
      * 從 expression 到 primary，所有這些函數都是做：已知接下來的 token 們可以被解析為那個東西，進行解析，並返回
      *
-     * @return
+     * @return any expression
      */
     private Expr expression() {
         return assignment();
@@ -257,10 +257,10 @@ public class LoxParser {
                 Expr value = assignment();
                 Expr.Get get = (Expr.Get) expr;
                 return new Expr.Set(get.object, get.name, value);
-            } else if (expr instanceof Expr.ArrayAccess) {
+            } else if (expr instanceof Expr.ArrayGetExpr) {
                 Expr value = assignment();
-                Expr.ArrayAccess access = (Expr.ArrayAccess) expr;
-                return new Expr.ArraySet(access.array, access.index, value, access.rightBracket );
+                Expr.ArrayGetExpr access = (Expr.ArrayGetExpr) expr;
+                return new Expr.ArraySetExpr(access.array, access.index, value, access.rightBracket );
             }
             parseError(equal, "Invalid assignment target");
         }
@@ -347,7 +347,7 @@ public class LoxParser {
             } else if (match(TokenType.LEFT_BRACKET)) {
                 Expr index = expression();
                 Token rightBracket = consume(TokenType.RIGHT_BRACKET, "] is missing for array access");
-                expr = new Expr.ArrayAccess(expr, index, rightBracket);
+                expr = new Expr.ArrayGetExpr(expr, index, rightBracket);
             } else {
                 break;
             }
@@ -357,7 +357,7 @@ public class LoxParser {
 
     /**
      * @param callee 函数的本体. 比如 abc()() 中的 abc
-     * @return
+     * @return 包含连续的()的函数调用。最后一个右括号已被消费。
      */
     private Expr finishCall(Expr callee) {
         ArrayList<Expr> arguments = new ArrayList<>();
@@ -407,8 +407,8 @@ public class LoxParser {
             return new Expr.This(previous());
         }
         if (match(TokenType.LEFT_BRACKET)) {
-            Expr length = arrayCreation();
-            return new Expr.ArrayCreation(length, previous());
+            List<Expr> exprList = arrayCreation();
+            return new Expr.ArrayCreationExpr(exprList, previous());
         }
         // unrecognized token
         throw parseError(peek(), "The token is at the inappropriate position");
@@ -417,10 +417,10 @@ public class LoxParser {
 
     /**
      * 现有的问题：仅用正则表达式无法处理嵌套的{}，可以考虑改成栈式解析器
-     * @return
+     * @return fstring
      */
     private Expr fstring() {
-        Token str = consume(TokenType.STRING, "as FStirng, here should be a string");
+        Token str = consume(TokenType.STRING, "as FString, here should be a string");
         String literal = str.literal.toString();
         String new_literal = literal.replaceAll("\\{.*?}", "%s");
         List<Expr> exprList = new ArrayList<>();
@@ -435,13 +435,17 @@ public class LoxParser {
             Expr expr = parser.expression(); // 对于每个{}中的内容，我们只读取第一个表达式
             exprList.add(expr);
         }
-        return new Expr.FStirng(new_literal, exprList);
+        return new Expr.FString(new_literal, exprList);
     }
 
-    private Expr arrayCreation() {
-        Expr length = expression();
-        consume(TokenType.RIGHT_BRACKET, "] is needed for array creation");
-        return length;
+    private List<Expr> arrayCreation() {
+        List<Expr> exprList = new ArrayList<>();
+        do {
+            Expr length = expression();
+            exprList.add(length);
+            consume(TokenType.RIGHT_BRACKET, "] is needed for array creation");
+        } while (!isEnd() && match(TokenType.LEFT_BRACKET));
+        return exprList;
     }
 
 

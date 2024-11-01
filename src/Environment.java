@@ -1,7 +1,7 @@
 import java.util.HashMap;
 
 public class Environment {
-    private HashMap<String, Object> values = new HashMap<>();
+    private final HashMap<String, Object> values = new HashMap<>();
     private Environment enclosing;
 
     public Environment() {

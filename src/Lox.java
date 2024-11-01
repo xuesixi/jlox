@@ -42,7 +42,7 @@ public class Lox {
     /**
      * REPL 模式下，如果补货到了 ReplPending 异常，说明在某个该有语句的地方没有语句。
      * 此时我们会保存上一次的输入，然后重新读取输入。将这两次的输入合并在一起，一起重新解释。
-     * @throws IOException
+     * @throws IOException ???
      */
     public static void runPrompt() throws IOException {
         repl = true;
