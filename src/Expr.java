@@ -16,6 +16,9 @@ abstract class Expr {
     R visitVariableExpr(Variable expr);
     R visitFStringExpr(FStirng expr);
     R visitThisExpr(This expr);
+    R visitArrayCreation(ArrayCreation expr);
+    R visitArrayAccess(ArrayAccess expr);
+    R visitArraySet(ArraySet expr);
   }
   static class Assign extends Expr {
     Assign(Token name, Expr value) {
@@ -186,6 +189,58 @@ abstract class Expr {
     @Override
     <R> R accept(Visitor<R> visitor) {
       return visitor.visitThisExpr(this);
+    }
+  }
+
+  static class ArrayCreation extends Expr {
+    Expr length;
+    Token rightBracket;
+
+    public ArrayCreation( Expr length, Token rightBracket) {
+      this.length = length;
+      this.rightBracket = rightBracket;
+    }
+
+    @Override
+    <R> R accept(Visitor<R> visitor) {
+      return visitor.visitArrayCreation(this);
+    }
+  }
+
+  static class ArrayAccess extends Expr {
+
+    Expr array;
+    Expr index;
+    Token rightBracket;
+
+    public ArrayAccess(Expr array, Expr index, Token rightBracket) {
+      this.array = array;
+      this.index = index;
+      this.rightBracket = rightBracket;
+    }
+
+    @Override
+    <R> R accept(Visitor<R> visitor) {
+      return visitor.visitArrayAccess(this);
+    }
+  }
+
+  static class ArraySet extends Expr {
+    Expr array;
+    Expr index;
+    Expr value;
+    Token rightBracket;
+
+    public ArraySet(Expr array, Expr index, Expr value, Token rightBracket) {
+      this.array = array;
+      this.index = index;
+      this.value = value;
+      this.rightBracket = rightBracket;
+    }
+
+    @Override
+    <R> R accept(Visitor<R> visitor) {
+      return visitor.visitArraySet(this);
     }
   }
 

@@ -257,6 +257,10 @@ public class LoxParser {
                 Expr value = assignment();
                 Expr.Get get = (Expr.Get) expr;
                 return new Expr.Set(get.object, get.name, value);
+            } else if (expr instanceof Expr.ArrayAccess) {
+                Expr value = assignment();
+                Expr.ArrayAccess access = (Expr.ArrayAccess) expr;
+                return new Expr.ArraySet(access.array, access.index, value, access.rightBracket );
             }
             parseError(equal, "Invalid assignment target");
         }
@@ -340,6 +344,10 @@ public class LoxParser {
             } else if (match(TokenType.DOT)) {
                 Token property = consume(TokenType.IDENTIFIER, "you need to specify a property");
                 expr = new Expr.Get(expr, property);
+            } else if (match(TokenType.LEFT_BRACKET)) {
+                Expr index = expression();
+                Token rightBracket = consume(TokenType.RIGHT_BRACKET, "] is missing for array access");
+                expr = new Expr.ArrayAccess(expr, index, rightBracket);
             } else {
                 break;
             }
@@ -398,6 +406,10 @@ public class LoxParser {
         if (match(TokenType.THIS)) {
             return new Expr.This(previous());
         }
+        if (match(TokenType.LEFT_BRACKET)) {
+            Expr length = arrayCreation();
+            return new Expr.ArrayCreation(length, previous());
+        }
         // unrecognized token
         throw parseError(peek(), "The token is at the inappropriate position");
     }
@@ -424,6 +436,12 @@ public class LoxParser {
             exprList.add(expr);
         }
         return new Expr.FStirng(new_literal, exprList);
+    }
+
+    private Expr arrayCreation() {
+        Expr length = expression();
+        consume(TokenType.RIGHT_BRACKET, "] is needed for array creation");
+        return length;
     }
 
 

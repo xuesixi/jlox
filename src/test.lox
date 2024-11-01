@@ -31,4 +31,5 @@ fun show() {
 }
 
 var dog = Animal("anda", 10);
+var nums = [10];
 print f "the area of a circle with radius 5 is {Animal.area(5)}";

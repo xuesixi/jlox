@@ -127,12 +127,24 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         }
     }
 
+    private int validUint(Object value) {
+        if (!(value instanceof Double)) {
+            return -1;
+        }
+        Double d = (Double) value;
+        if (d % 1 != 0) {
+            return -1;
+        } else {
+            return d.intValue();
+        }
+    }
+
     /**
      * 对于一个“值”，返回它的字符串表达方式。
      * @param object 想要表达的值
      * @return 字符串表达
      */
-    private String stringify(Object object) {
+    public static String stringify(Object object) {
         if (object == null)
             return "nil";
 
@@ -229,6 +241,9 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         Object instance = evaluate(expr.object);
         if (instance instanceof LoxInstance) {
             return ((LoxInstance) instance).get(expr.name);
+        } else if (instance instanceof LoxArray && expr.name.lexeme.equals("length")) {
+            int length = ((LoxArray) instance).getLength();
+            return Double.valueOf(length);
         }
         throw new LoxRuntimeError(expr.name, "only object supports field getting");
     }
@@ -294,6 +309,56 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     @Override
     public Object visitThisExpr(Expr.This expr) {
         return lookupVariable(expr, expr.keyword);
+    }
+
+    @Override
+    public Object visitArrayCreation(Expr.ArrayCreation expr) {
+        Object length = evaluate(expr.length);
+
+        int len = validUint(length);
+        if (len <= 0) {
+            throw new LoxRuntimeError(expr.rightBracket, "%s is not a valid array length".formatted(stringify(length)));
+        }
+        return new LoxArray(len);
+    }
+
+    @Override
+    public Object visitArrayAccess(Expr.ArrayAccess expr) {
+        Object arr = evaluate(expr.array);
+        Object indexValue = evaluate(expr.index);
+        if (!(arr instanceof LoxArray)) {
+            throw new LoxRuntimeError(expr.rightBracket, "%s is not a valid array".formatted(stringify(arr)));
+        }
+        int index = validUint(indexValue);
+        if (index <= -1) {
+            throw new LoxRuntimeError(expr.rightBracket, "%s is not a valid index".formatted(stringify(indexValue)));
+        }
+        try {
+            return ((LoxArray) arr).atIndex(index);
+        }catch (IndexOutOfBoundsException e) {
+            throw new LoxRuntimeError(expr.rightBracket, "%d is out of bound of %d".formatted(index, ((LoxArray) arr).getLength()));
+        }
+
+    }
+
+    @Override
+    public Object visitArraySet(Expr.ArraySet expr) {
+        Object value = evaluate(expr.value);
+        Object arr = evaluate(expr.array);
+        Object indexValue = evaluate(expr.index);
+        if (!(arr instanceof LoxArray)) {
+            throw new LoxRuntimeError(expr.rightBracket, "%s is not a valid array".formatted(stringify(arr)));
+        }
+        int index = validUint(indexValue);
+        if (index <= -1) {
+            throw new LoxRuntimeError(expr.rightBracket, "%s is not a valid index".formatted(stringify(indexValue)));
+        }
+        try {
+            ((LoxArray) arr).setAtIndex(index, value);
+            return value;
+        }catch (IndexOutOfBoundsException e) {
+            throw new LoxRuntimeError(expr.rightBracket, "%d is out of bound of %d".formatted(index, ((LoxArray) arr).getLength()));
+        }
     }
 
     @Override

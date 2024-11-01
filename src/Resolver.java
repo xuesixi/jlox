@@ -148,6 +148,27 @@ public class Resolver implements Stmt.Visitor<Void>, Expr.Visitor<Void> {
         return null;
     }
 
+    @Override
+    public Void visitArrayCreation(Expr.ArrayCreation expr) {
+        resolve(expr.length);
+        return null;
+    }
+
+    @Override
+    public Void visitArrayAccess(Expr.ArrayAccess expr) {
+        resolve(expr.array);
+        resolve(expr.index);
+        return null;
+    }
+
+    @Override
+    public Void visitArraySet(Expr.ArraySet expr) {
+        resolve(expr.value);
+        resolve(expr.array);
+        resolve(expr.index);
+        return null;
+    }
+
     /**
      * block具有新一层 scope
      * @param stmt
