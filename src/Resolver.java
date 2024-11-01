@@ -168,7 +168,14 @@ public class Resolver implements Stmt.Visitor<Void>, Expr.Visitor<Void> {
         define(stmt.name);
         ClassType old = classType;
         classType = ClassType.Class;
-        beginScope();
+        beginScope(); // 这一层是 class 的静态环境，其中储存着静态函数和静态变量
+        for (Stmt.Var staticVariable : stmt.staticVariables) {
+            resolve(staticVariable);
+        }
+        for (Stmt.Function staticMethod : stmt.staticMethods) {
+            resolve(staticMethod);
+        }
+        beginScope(); // 这层环境中只有 this
         scopes.peek().add("this");
         for (Stmt.Function method : stmt.methods) {
             define(method.name);
@@ -178,6 +185,7 @@ public class Resolver implements Stmt.Visitor<Void>, Expr.Visitor<Void> {
                 resolveFunction(method, FunctionType.Function);
             }
         }
+        endScope();
         endScope();
         classType = old;
         return null;

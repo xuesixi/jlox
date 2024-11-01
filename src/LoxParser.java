@@ -49,7 +49,7 @@ public class LoxParser {
         }
     }
 
-    private Stmt varDeclaration() {
+    private Stmt.Var varDeclaration() {
         Token variable = consume(TokenType.IDENTIFIER, "An IDENTIFIER is needed after var");
         Expr initializer = null;
         if (match(TokenType.EQUAL)) {
@@ -63,11 +63,24 @@ public class LoxParser {
         Token className = consume(TokenType.IDENTIFIER, "A class expects a name");
         consume(TokenType.LEFT_BRACE, "A class expects a { after class name");
         List<Stmt.Function> methods = new ArrayList<>();
+        List<Stmt.Function> staticMethods = new ArrayList<>();
+        List<Stmt.Var> staticVariables = new ArrayList<>();
         while (!isEnd() && peek().type != TokenType.RIGHT_BRACE) {
-            methods.add(functionDeclaration());
+            if (match(TokenType.STATIC)) {
+                consume(TokenType.IDENTIFIER, "An IDENTIFIER is needed after static");
+                if (peek().type == TokenType.LEFT_PAREN) {
+                    current--;
+                    staticMethods.add(functionDeclaration());
+                } else {
+                    current--;
+                    staticVariables.add(varDeclaration());
+                }
+            } else {
+                methods.add(functionDeclaration());
+            }
         }
         consume(TokenType.RIGHT_BRACE, "A class is terminated by a }");
-        return new Stmt.Class(className, methods);
+        return new Stmt.Class(className, methods, staticMethods, staticVariables);
     }
 
     private Stmt statement() {

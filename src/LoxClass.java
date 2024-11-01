@@ -1,11 +1,13 @@
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
-public class LoxClass implements LoxCallable {
+public class LoxClass extends LoxInstance implements LoxCallable {
     final String name;
     final HashMap<String, LoxFunction> methods;
 
-    LoxClass(String name, HashMap<String, LoxFunction> methods) {
+    LoxClass(String name, HashMap<String, LoxFunction> methods, HashMap<String, Object> staticFields) {
+        super(staticFields);
         this.name = name;
         this.methods = methods;
     }

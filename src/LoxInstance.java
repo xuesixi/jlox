@@ -8,9 +8,17 @@ public class LoxInstance {
         this.loxClass = loxClass;
     }
 
+    public LoxInstance(HashMap<String, Object> fields) {
+        this.loxClass = null;
+        this.fields = fields;
+    }
+
     public Object get(Token field) {
         if (fields.containsKey(field.lexeme)) {
             return fields.get(field.lexeme);
+        }
+        if (loxClass == null) {
+            throw new LoxRuntimeError(field, "the field or method does not exist");
         }
         LoxFunction original = loxClass.getMethod(field.lexeme);
         if (original == null) {

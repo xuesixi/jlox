@@ -1,7 +1,6 @@
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.zip.Deflater;
 
 public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     public Environment global = new Environment(); // global 用来储存全局变量
@@ -306,12 +305,38 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
     @Override
     public Void visitClassStmt(Stmt.Class stmt) {
+        Environment oldEnv = environment;
+        this.environment = new Environment(oldEnv);
+
         HashMap<String , LoxFunction> methods = new HashMap<>();
+        HashMap<String , Object> staticFields = new HashMap<>();
+
         for (Stmt.Function method : stmt.methods) {
             LoxFunction function = new LoxFunction(method, this.environment, method.name.lexeme.equals("init"));
             methods.put(method.name.lexeme, function);
         }
-        LoxClass loxClass = new LoxClass(stmt.name.lexeme, methods);
+
+        // 静态方法/字段既是 class 的字段，又处于 class 的环境之中。
+        // 前者是为了类似 Math.PI 之类的访问
+        // 后者是为了 class 内部其他方法的closure，
+        for (Stmt.Function staticMethod : stmt.staticMethods) {
+            LoxFunction function = new LoxFunction(staticMethod, environment, false);
+            environment.define(staticMethod.name.lexeme, function); // 环境定义
+            staticFields.put(staticMethod.name.lexeme, function); // 字段添加
+        }
+
+        for (Stmt.Var staticVariable : stmt.staticVariables) {
+            Object value = null;
+            if (staticVariable.initializer != null) {
+                value = evaluate(staticVariable.initializer);
+            }
+            environment.define(staticVariable.name.lexeme, value); // 环境定义
+            staticFields.put(staticVariable.name.lexeme, value); // 字段添加
+        }
+
+        LoxClass loxClass = new LoxClass(stmt.name.lexeme, methods, staticFields);
+        this.environment = oldEnv;
+
         environment.define(stmt.name.lexeme, loxClass);
         return null;
     }
