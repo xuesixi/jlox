@@ -1,3 +1,7 @@
+
+all:
+	@javac -d out *.java
+
 f: file
 
 file: Lox.java test.lox

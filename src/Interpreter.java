@@ -1,5 +1,3 @@
-import com.sun.jdi.connect.IllegalConnectorArgumentsException;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -65,6 +63,10 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         locals.put(expr, distance);
     }
 
+    /**
+     * 根据 locals 中的结果，确定需要向外寻找的环境的层级
+     * 如果 locals 中不存在对应的 key，那么认为其存在于 global 中。
+     */
     private Object lookupVariable(Expr expr, Token token) {
         Integer distance = locals.get(expr);
         if (distance == null) {
@@ -166,13 +168,6 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     @Override
     public Object visitAssignExpr(Expr.Assign expr) {
         Object value = evaluate(expr.value);
-//        Integer distance = locals.get(expr);
-//        if (distance == null) {
-//            global.assign(expr.name, value);;
-//        } else {
-//            environment.assignAt(expr.name, value, distance);
-//        }
-//        return value;
         return varAssignHelper(expr, expr.name, value);
     }
 
@@ -282,14 +277,8 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
     @Override
     public Object visitSetExpr(Expr.Set expr) {
-//        Object instance = evaluate(expr.object);
         Object value = evaluate(expr.value);
         return setHelper(expr.object, expr.name, value);
-//        if (instance instanceof LoxInstance) {
-//            ((LoxInstance) instance).set(expr.name, value);
-//            return value;
-//        }
-//        throw new LoxRuntimeError(expr.name, "only object supports field setting");
     }
 
     public Object setHelper(Expr targetObject, Token field, Object value) {
@@ -371,21 +360,6 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     public Object visitArraySetExpr(Expr.ArraySetExpr expr) {
         Object value = evaluate(expr.value);
         return arraySetHelper(expr.array, expr.index, expr.rightBracket, value);
-//        Object arr = evaluate(expr.array);
-//        Object indexValue = evaluate(expr.index);
-//        if (!(arr instanceof LoxArray)) {
-//            throw new LoxRuntimeError(expr.rightBracket, "%s is not a valid array".formatted(stringify(arr)));
-//        }
-//        int index = validUint(indexValue);
-//        if (index <= -1) {
-//            throw new LoxRuntimeError(expr.rightBracket, "%s is not a valid index".formatted(stringify(indexValue)));
-//        }
-//        try {
-//            ((LoxArray) arr).setAtIndex(index, value);
-//            return value;
-//        }catch (IndexOutOfBoundsException e) {
-//            throw new LoxRuntimeError(expr.rightBracket, "%d is out of bound of %d".formatted(index, ((LoxArray) arr).getLength()));
-//        }
     }
 
     public Object arraySetHelper(Expr arrExpr, Expr indexExpr, Token keyword, Object value) {
@@ -415,30 +389,51 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         return new LoxArray(valueList);
     }
 
+    /**
+     * 对形如 (a, (dog.name, arr[3]), b) = nums 的元组进行解构
+     * @param expr 形如 {@code  (a, (dog.name, arr[3]), b) = nums }的元组
+     * @return {@code null}
+     */
     @Override
     public Object visitTupleUnpackExpr(Expr.TupleUnpackExpr expr) {
+
+        // 右侧的值必须是一个数组
         Object rightValue = evaluate(expr.right);
         if (!(rightValue instanceof LoxArray)) {
-            throw new LoxRuntimeError(expr.equal, "The right value of assign is not an array");
+            throw new LoxRuntimeError(expr.equal, "The right value of tuple unpacking must be an array");
         }
+
         LoxArray arr = (LoxArray) rightValue;
+
+        // 如果左侧的长度大于右侧，则出错
         int leftSize = expr.left.exprList.size();
         if (leftSize > arr.getLength()) {
-            throw new LoxRuntimeError(expr.equal, "Unbalanced unpacking with left of size %d and right of size %d".formatted(leftSize, arr.getLength()));
+            throw new LoxRuntimeError(expr.equal, "Unbalanced unpacking with left size %d and right size %d".formatted(leftSize, arr.getLength()));
         }
+
+        // 将右侧的每一个值分别赋值给左侧的对应的值。
         for (int i = 0; i < leftSize; i++) {
-            Expr e = expr.left.exprList.get(i);
+            Expr left = expr.left.exprList.get(i); //
             Object value = arr.getAtIndex(i);
-            if (e instanceof Expr.Variable) {
-                varAssignHelper(e, ((Expr.Variable) e).name, value);
-            } else if (e instanceof Expr.Get) {
-                Expr.Get temp = (Expr.Get) e;
+            if (left instanceof Expr.Variable) {
+                // 如果左侧是变量，则进行变量赋值
+                varAssignHelper(left, ((Expr.Variable) left).name, value);
+            } else if (left instanceof Expr.Get) {
+                // 如果左侧是对象取字段，那么修改对象字段
+                Expr.Get temp = (Expr.Get) left;
                 setHelper(temp.object, temp.name, value);
-            } else if (e instanceof Expr.ArrayGetExpr) {
-                Expr.ArrayGetExpr temp = (Expr.ArrayGetExpr) e;
+            } else if (left instanceof Expr.ArrayGetExpr) {
+                // 如果左侧是数组取索引，那么修改数组对应索引
+                Expr.ArrayGetExpr temp = (Expr.ArrayGetExpr) left;
                 arraySetHelper(temp.array, temp.index, temp.rightBracket, value);
-            } else if (e instanceof Expr.TupleExpr) {
-              throw new LoxRuntimeError(expr.equal, "No nested tuple unpacking supported yet")  ;
+            } else if (left instanceof Expr.TupleExpr) {
+                // 如果左侧是另一个元组，那么递归地进行赋值
+                Expr.TupleExpr temp = (Expr.TupleExpr) left;
+                Expr right = new Expr.Literal(value);
+                Expr.TupleUnpackExpr newExp = new Expr.TupleUnpackExpr(temp, right,  expr.equal);
+                evaluate(newExp);
+            } else {
+                throw new LoxRuntimeError(expr.equal, "%s is not a valid assign target".formatted(stringify(evaluate(left))));
             }
         }
         return null;
@@ -550,5 +545,30 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
             execute(stmt.body);
         }
         return null;
+    }
+
+    @Override
+    public Void visitVarTupleStmt(Stmt.VarTuple stmt) {
+        // 将先左侧的所有值定义
+        defineIdentifierTuple(stmt.tuple);
+        // 再进行一次元组解构
+        visitTupleUnpackExpr(new Expr.TupleUnpackExpr(stmt.tuple, stmt.initializer, stmt.equal));
+        return null;
+    }
+
+    /**
+     * 对于形如 (a, (b, c), d) 的元组，把其中的每一个标识符都在当前环境中定义
+     * @param expr 形如 (a, (b, c), d) 的元组
+     */
+    private void defineIdentifierTuple(Expr.TupleExpr expr) {
+        for (Expr e : expr.exprList) {
+            if (e instanceof Expr.Variable) {
+                environment.define(((Expr.Variable) e).name.lexeme, null);
+            } else if (e instanceof Expr.TupleExpr) {
+                defineIdentifierTuple((Expr.TupleExpr) e);
+            } else {
+                throw new LoxRuntimeError(null, "tuple var declare with invalid variable");
+            }
+        }
     }
 }

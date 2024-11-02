@@ -12,6 +12,7 @@ public abstract class Stmt {
     R visitReturnStmt(Return stmt);
     R visitVarStmt(Var stmt);
     R visitWhileStmt(While stmt);
+    R visitVarTupleStmt(VarTuple stmt);
   }
   public static class Block extends Stmt {
     Block(List<Stmt> statements) {
@@ -140,6 +141,26 @@ public abstract class Stmt {
 
     final Expr condition;
     final Stmt body;
+  }
+
+  /**
+   *  var (a, b) = (1, 2) 的语句
+   */
+  public static class VarTuple extends Stmt {
+    Expr.TupleExpr tuple;
+    Expr initializer;
+    Token equal;
+
+    @Override
+    <R> R accept(Visitor<R> visitor) {
+      return visitor.visitVarTupleStmt(this);
+    }
+
+    public VarTuple(Expr.TupleExpr tuple, Expr initializer, Token equal) {
+      this.tuple = tuple;
+      this.initializer = initializer;
+      this.equal = equal;
+    }
   }
 
   abstract <R> R accept(Visitor<R> visitor);

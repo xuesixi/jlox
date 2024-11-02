@@ -1,6 +1,5 @@
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -31,7 +30,11 @@ public class LoxParser {
     private Stmt declaration() {
         try {
             if (match(TokenType.VAR)) {
-                return varDeclaration();
+                if (match(TokenType.LEFT_PAREN)) {
+                    return varTuple();
+                }else {
+                    return varDeclaration();
+                }
             } else if (match(TokenType.CLASS)) {
                 return classDeclaration();
             } else if (match(TokenType.FUN)) {
@@ -58,6 +61,13 @@ public class LoxParser {
         }
         consume(TokenType.SEMICOLON, "Here is expected to be a semicolon to terminate a statement");
         return new Stmt.Var(variable, initializer);
+    }
+
+    private Stmt varTuple() {
+        Expr.TupleExpr tuple = identifierTuple();
+        Token equal = consume(TokenType.EQUAL, "tuple var needs to be initialized");
+        Expr right = expression();
+        return new Stmt.VarTuple(tuple, right, equal);
     }
 
     private Stmt classDeclaration() {
@@ -405,7 +415,7 @@ public class LoxParser {
             if (match(TokenType.COMMA)) {
                 List<Expr> exprList = new ArrayList<>();
                 exprList.add(expr);
-                return tuple(exprList);
+                return generalTuple(exprList);
             }
             consume(TokenType.RIGHT_PAREN, "Missing right parenthesis");
             return new Expr.Grouping(expr);
@@ -428,22 +438,32 @@ public class LoxParser {
     }
 
     /**
-     * 匹配形如 a, b, c, d) 的元组。
-     * @return 一个元祖表达式。该函数会消耗最后的 )
+     * 匹配形如 a, b+c, d(), (e)) 的元组。
+     * @return 一个包含可以包含任何表达式的元祖。
      */
-    private Expr tuple(List<Expr> exprList) {
+    private Expr.TupleExpr generalTuple(List<Expr> exprList) {
         do {
             exprList.add(expression());
         } while (!isEnd() && match(TokenType.COMMA));
         consume(TokenType.RIGHT_PAREN, "Tuple needs to have a )");
         return new Expr.TupleExpr(exprList);
+    }
 
-//        while (!isEnd() && peek().type != TokenType.RIGHT_PAREN) {
-//            consume(TokenType.COMMA, "Tuple items need to be separated by comma");
-//            exprList.add(expression());
-//        }
-//        consume(TokenType.RIGHT_PAREN, "Tuple needs to have a )");
-//        return new Expr.TupleExpr(exprList);
+    /**
+     * 匹配形如 a, (b, c) ) 的元祖
+     * @return 仅仅包含标识符的 tuple 表达式。用在变量定义之中
+     */
+    private Expr.TupleExpr identifierTuple() {
+        List<Expr> exprList = new ArrayList<>();
+        do {
+            if (peek().type == TokenType.IDENTIFIER) {
+                exprList.add(primary());
+            } else {
+                exprList.add(identifierTuple());
+            }
+        } while (!isEnd() && match(TokenType.COMMA));
+        consume(TokenType.RIGHT_PAREN, "A tuple needs to end with )");
+        return new Expr.TupleExpr(exprList);
     }
 
 

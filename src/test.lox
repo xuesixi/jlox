@@ -17,6 +17,7 @@ class Animal {
     init(name, age) {
         this.name = name;
         this.age = age;
+        this.run();
     }
 
     eat() {
@@ -34,16 +35,40 @@ class Animal {
     }
 }
 
-fun table(x, y) {
-    var nums = [x][y];
-    for (var i = 0; i < nums.length; i = i + 1) {
-        for (var n = 0; n < nums[i].length; n = n + 1) {
-            nums[i][n] = f "({i}:{n})";
-        }
+class ArrayIterator {
+    init(array) {
+        this.array = array;
+        this.curr = 0;
     }
-    return nums;
+
+    hasNext() {
+        return this.curr < this.array.length;
+    }
+
+    next() {
+        this.curr = this.curr + 1;
+        return this.array[this.curr-1];
+    }
 }
 
-var dog = Animal("anda", 4);
-var t = dog.show();
-print t;
+fun moria() {
+
+    class Inner {
+        init(name) {
+            this.name = name;
+        }
+    }
+    
+    class Other {
+        init(name) {
+            this.name = name;
+        }
+        show() {
+            var i = Inner("anda");
+            print i.name;
+        }
+    }
+
+    var o = Other("hulu");
+    o.show();
+}

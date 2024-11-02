@@ -1,0 +1,21 @@
+class Array {
+    iterator() {
+        return ArrayIterator(this);
+    }
+}
+
+class ArrayIterator {
+    init(array) {
+        this.array = array;
+        this.curr = 0;
+    }
+
+    hasNext() {
+        return curr < this.array.length;
+    }
+
+    next() {
+        curr = curr + 1;
+        return this.array[curr-1];
+    }
+}

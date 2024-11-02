@@ -320,6 +320,32 @@ public class Resolver implements Stmt.Visitor<Void>, Expr.Visitor<Void> {
         return null;
     }
 
+    /**
+     * 用在 visitVarTupleStmt 中。如果tupleExpr 中存在非标识符元素，那么出错。
+     * 由于我已经在 varTuple 的匹配中进行了限定，理论上这里不应该出现错误。
+     * @param tupleExpr 一个仅有标识符或者标识符元祖的元祖
+     */
+    public void resolveVariableOnlyTuple(Expr.TupleExpr tupleExpr) {
+        for (Expr expr : tupleExpr.exprList) {
+            if (expr instanceof Expr.Variable || expr instanceof Expr.TupleExpr) {
+                resolve(expr);
+            } else {
+                Lox.resolvingError(-1, "tuple", "not valid variable to declare");
+            }
+        }
+    }
+
+    /**
+     * var (a, b) = (1, 2)
+     * var ((a, b), c ) = nums;
+     */
+    @Override
+    public Void visitVarTupleStmt(Stmt.VarTuple stmt) {
+        resolve(stmt.initializer);
+        resolveVariableOnlyTuple(stmt.tuple);
+        return null;
+    }
+
     private enum FunctionType {
         None,
         Function,
