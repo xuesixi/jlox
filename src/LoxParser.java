@@ -39,6 +39,8 @@ public class LoxParser {
                 return classDeclaration();
             } else if (match(TokenType.FUN)) {
                 return functionDeclaration();
+            } else if (match(TokenType.IMPORT)) {
+                return importDeclaration();
             } else {
                 return statement();
             }
@@ -51,6 +53,19 @@ public class LoxParser {
                 return null;
             }
         }
+    }
+
+    private Stmt importDeclaration() {
+        Token path = consume(TokenType.STRING, "The module path is missing for import statement");
+        List<Token> items = new ArrayList<>();
+        if (match(TokenType.COLON)) {
+            do {
+                Token item = consume(TokenType.IDENTIFIER, "Here should be an identifier in the module");
+                items.add(item);
+            } while (!isEnd() && match(TokenType.COMMA));
+        }
+        consume(TokenType.SEMICOLON, " A semicolon is needed to terminate import statement");
+        return new Stmt.Import(path, items);
     }
 
     private Stmt.Var varDeclaration() {

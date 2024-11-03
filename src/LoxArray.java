@@ -6,7 +6,6 @@ public class LoxArray extends LoxInstance{
 
     public LoxArray(int len) {
         super((LoxClass) null);
-
         backing = new Object[len];
         this.set("length", (double) len);
     }

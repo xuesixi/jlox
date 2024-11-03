@@ -13,6 +13,7 @@ public abstract class Stmt {
     R visitVarStmt(Var stmt);
     R visitWhileStmt(While stmt);
     R visitVarTupleStmt(VarTuple stmt);
+    R visitImportStmt(Import stmt);
   }
   public static class Block extends Stmt {
     Block(List<Stmt> statements) {
@@ -160,6 +161,21 @@ public abstract class Stmt {
       this.tuple = tuple;
       this.initializer = initializer;
       this.equal = equal;
+    }
+  }
+
+  public static class Import extends Stmt {
+    Token path;
+    List<Token> items;
+
+    public Import(Token path, List<Token> items) {
+      this.path = path;
+      this.items = items;
+    }
+
+    @Override
+    <R> R accept(Visitor<R> visitor) {
+      return visitor.visitImportStmt(this);
     }
   }
 

@@ -9,7 +9,7 @@ public class LoxInstance {
     }
 
     public LoxInstance(HashMap<String, Object> fields) {
-        this.loxClass = null;
+        this((LoxClass) null);
         this.fields = fields;
     }
 
@@ -42,6 +42,19 @@ public class LoxInstance {
             return "<object: %s>".formatted(loxClass.name);
         } else {
             return "<object: NoClass>";
+        }
+    }
+
+    public static class LoxModule extends LoxInstance{
+        String moduleName;
+        public LoxModule(String name, Environment env) {
+            super(env.values);
+            this.moduleName = name;
+        }
+
+        @Override
+        public String toString() {
+            return "<module: %s>".formatted(moduleName);
         }
     }
 }

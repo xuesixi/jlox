@@ -25,6 +25,7 @@ public class LoxScanner {
         typeMap.put("var", TokenType.VAR);
         typeMap.put("while", TokenType.WHILE);
         typeMap.put("static", TokenType.STATIC);
+        typeMap.put("import", TokenType.IMPORT);
     }
 
     private final String source;
@@ -84,6 +85,9 @@ public class LoxScanner {
                 break;
             case '*':
                 addToken(TokenType.STAR);
+                break;
+            case ':':
+                addToken(TokenType.COLON);
                 break;
             case '!':
                 addToken(match('=') ? TokenType.BANG_EQUAL : TokenType.BANG);
@@ -158,6 +162,7 @@ public class LoxScanner {
 
         //  否則，我們遇到了右引號
         current++;
+//        System.out.println("the string literal is " + source.substring(start + 1, current -1));
         addToken(TokenType.STRING, source.substring(start + 1, current - 1));
     }
 

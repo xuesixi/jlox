@@ -1,3 +1,6 @@
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -65,12 +68,13 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
     /**
      * 根据 locals 中的结果，确定需要向外寻找的环境的层级
-     * 如果 locals 中不存在对应的 key，那么认为其存在于 global 中。
+     * 如果 locals 中不存在对应的 key，那么动态地寻找
      */
     private Object lookupVariable(Expr expr, Token token) {
         Integer distance = locals.get(expr);
         if (distance == null) {
-            return global.get(token);
+//            return global.get(token);
+            return environment.get(token);
         } else {
             return environment.getAt(token, distance);
         }
@@ -174,7 +178,8 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     public Object varAssignHelper(Expr expr, Token varName, Object value) {
         Integer distance = locals.get(expr);
         if (distance == null) {
-            global.assign(varName, value);
+//            global.assign(varName, value);
+            environment.assign(varName, value);
         } else {
             environment.assignAt(varName, value, distance);
         }
@@ -553,6 +558,40 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         defineIdentifierTuple(stmt.tuple);
         // 再进行一次元组解构
         visitTupleUnpackExpr(new Expr.TupleUnpackExpr(stmt.tuple, stmt.initializer, stmt.equal));
+        return null;
+    }
+
+    @Override
+    public Void visitImportStmt(Stmt.Import stmt) {
+        // the resolver assures that the path does not end with .lox
+        String pathString = stmt.path.literal.toString();
+        Path path = Path.of(pathString + ".lox");
+        try {
+            String moduleSrc = Files.readString(path);
+            List<Token> tokens =  new LoxScanner(moduleSrc).scanTokens();
+            List<Stmt> statements = new LoxParser(tokens).parse();
+            new LoxResolver(this).resolve(statements);
+
+            Environment old = this.environment;
+            Environment moduleEnv = new Environment();
+            this.environment = moduleEnv;
+            this.interpret(statements);
+
+            this.environment = old;
+            if (stmt.items.isEmpty()) {
+                // 如果是 import "huhu"; 式的全部导入，那么在当前环境中创建一个 huhu 对象。
+                LoxInstance module = new LoxInstance.LoxModule(pathString, moduleEnv);
+                this.environment.define(pathString, module);
+            } else {
+                // 如果是 import "huhu": Animal, sayHello; 式的选择性导入，那么在当前环境中分别定义 Animal 和 sayHello
+                for (Token item : stmt.items) {
+                    this.environment.define(item.lexeme, moduleEnv.get(item));
+                }
+            }
+
+        } catch (IOException e) {
+            throw new LoxRuntimeError(stmt.path, "No module found at the given path");
+        }
         return null;
     }
 

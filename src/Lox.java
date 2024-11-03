@@ -78,7 +78,7 @@ public class Lox {
         LoxParser parser = new LoxParser(tokens);
         List<Stmt> statements = parser.parse();
         if (!hadError) {
-            Resolver resolver = new Resolver(interpreter);
+            LoxResolver resolver = new LoxResolver(interpreter);
             resolver.resolve(statements);
             if (!hadError) {
                 interpreter.interpret(statements);

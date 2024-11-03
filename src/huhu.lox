@@ -1,0 +1,50 @@
+
+var name = "the name from huhu";
+
+class Animal {
+    static PI = 3.14152926;
+
+    static showNum() {
+        print f "the static num is 20 and the name is {name}";
+    }
+
+    init(name, age) {
+        this.name = name;
+        this.age = age;
+    }
+
+    eat() {
+        this.run();
+        print f "this animal {this.name} is also eating";
+    }
+
+    run() {
+        print f "the animal {this.name} with age {this.age} is running";
+        showNum();
+    }
+}
+
+class ArrayIterator {
+    init(array) {
+        this.array = array;
+        this.curr = 0;
+    }
+
+    hasNext() {
+        return this.curr < this.array.length;
+    }
+
+    next() {
+        this.curr = this.curr + 1;
+        return this.array[this.curr-1];
+    }
+}
+
+fun twoHuhu() {
+    sayHuhu();
+    sayHuhu();
+}
+
+fun sayHuhu() {
+    print "this is a function from huhu";
+}

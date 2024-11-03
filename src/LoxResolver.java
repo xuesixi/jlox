@@ -7,17 +7,18 @@ import java.util.Stack;
  * resolve 只关心变量。如果是一个链式语句，那么也只关心其中的第一个变量。
  * 比如说<pre>a.b().c.d()</pre>这样的语句，我们只resolve第一个 a。剩余的检查都发生在运行时。
  */
-public class Resolver implements Stmt.Visitor<Void>, Expr.Visitor<Void> {
+public class LoxResolver implements Stmt.Visitor<Void>, Expr.Visitor<Void> {
     private final Interpreter interpreter;
     private final Stack<HashSet<String >> scopes;
     private FunctionType functionType; // 进入函数时会被设置。如果在非函数预警下遇到了 return 语句，产生错误。
     private ClassType classType;
 
-    public Resolver(Interpreter interpreter) {
+    public LoxResolver(Interpreter interpreter) {
         functionType = FunctionType.None;
         classType = ClassType.None;
         this.interpreter = interpreter;
         scopes = new Stack<>();
+        scopes.add(new HashSet<>()); // 全局层
     }
 
     public void resolve(List<Stmt> stmts) {
@@ -47,6 +48,7 @@ public class Resolver implements Stmt.Visitor<Void>, Expr.Visitor<Void> {
                 return;
             }
         }
+        System.out.printf("the variable [%s] is not resolved, and left to runtime\n", token.lexeme);
     }
 
     private void beginScope() {
@@ -60,6 +62,12 @@ public class Resolver implements Stmt.Visitor<Void>, Expr.Visitor<Void> {
     private void define(Token name) {
         if (!scopes.isEmpty()) {
             scopes.peek().add(name.lexeme);
+        }
+    }
+
+    private void define(String name) {
+        if (! scopes.isEmpty()) {
+            scopes.peek().add(name);
         }
     }
 
@@ -343,6 +351,22 @@ public class Resolver implements Stmt.Visitor<Void>, Expr.Visitor<Void> {
     public Void visitVarTupleStmt(Stmt.VarTuple stmt) {
         resolve(stmt.initializer);
         resolveVariableOnlyTuple(stmt.tuple);
+        return null;
+    }
+
+    @Override
+    public Void visitImportStmt(Stmt.Import stmt) {
+        String moduleName = stmt.path.literal.toString();
+        if (stmt.path.literal.toString().contains(".")) {
+            Lox.resolvingError(stmt.path.line, moduleName, "The module should not contain dot");
+        }
+        if (stmt.items.isEmpty()) {
+            define(moduleName);
+        } else {
+            for (Token item : stmt.items) {
+                define(item.lexeme);
+            }
+        }
         return null;
     }
 
