@@ -6,6 +6,7 @@ import java.util.Stack;
  * <p>对于每个语句，判断它其中出现的变量的层级</p>
  * resolve 只关心变量。如果是一个链式语句，那么也只关心其中的第一个变量。
  * 比如说<pre>a.b().c.d()</pre>这样的语句，我们只resolve第一个 a。剩余的检查都发生在运行时。
+ * 如果一个变量没有找到对应的层级，那么它会在运行时动态地被查找。
  */
 public class LoxResolver implements Stmt.Visitor<Void>, Expr.Visitor<Void> {
     private final Interpreter interpreter;
@@ -48,7 +49,9 @@ public class LoxResolver implements Stmt.Visitor<Void>, Expr.Visitor<Void> {
                 return;
             }
         }
-        System.out.printf("the variable [%s] is not resolved, and left to runtime\n", token.lexeme);
+        if (!Lox.repl) {
+            System.out.printf("the variable [%s] is not resolved, and left to runtime\n", token.lexeme);
+        }
     }
 
     private void beginScope() {

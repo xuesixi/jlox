@@ -1,9 +1,3 @@
-class Array {
-    iterator() {
-        return ArrayIterator(this);
-    }
-}
-
 class ArrayIterator {
     init(array) {
         this.array = array;
@@ -11,11 +5,18 @@ class ArrayIterator {
     }
 
     hasNext() {
-        return curr < this.array.length;
+        return this.curr < this.array.length;
     }
 
     next() {
-        curr = curr + 1;
-        return this.array[curr-1];
+        this.curr = this.curr + 1;
+        return this.array[this.curr-1];
     }
 }
+
+class ArrayClass {
+    iter() {
+        return ArrayIterator(this);
+    }
+}
+

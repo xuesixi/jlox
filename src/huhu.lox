@@ -40,11 +40,8 @@ class ArrayIterator {
     }
 }
 
-fun twoHuhu() {
-    sayHuhu();
-    sayHuhu();
+fun sayName() {
+    print name;
 }
 
-fun sayHuhu() {
-    print "this is a function from huhu";
-}
+var dog = Animal("dodo", 4);

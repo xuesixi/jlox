@@ -3,9 +3,10 @@ import java.util.List;
 
 public class LoxArray extends LoxInstance{
     private final Object[] backing;
+    public static LoxClass loxArrayClass;
 
     public LoxArray(int len) {
-        super((LoxClass) null);
+        super(loxArrayClass);
         backing = new Object[len];
         this.set("length", (double) len);
     }

@@ -21,6 +21,16 @@ public class Environment {
         }
     }
 
+    public Object get(String name) {
+        if (values.containsKey(name)) {
+            return values.get(name);
+        } else if (enclosing != null) {
+            return enclosing.get(name);
+        } else {
+            throw new LoxRuntimeError(null, "no such variable: " + name);
+        }
+    }
+
     public Object getAt(String name, int distance) {
         Environment curr = this;
         for (int i = 0; i < distance; i++) {

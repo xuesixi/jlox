@@ -276,5 +276,9 @@ public abstract class Expr {
     }
   }
 
+  public static boolean isAssignment(Expr expr) {
+    return (expr instanceof Assign || expr instanceof Set || expr instanceof ArraySetExpr);
+  }
+
   abstract <R> R accept(Visitor<R> visitor);
 }

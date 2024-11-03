@@ -13,16 +13,45 @@ public class LoxInstance {
         this.fields = fields;
     }
 
-    public Object get(Token field) {
-        if (fields.containsKey(field.lexeme)) {
-            return fields.get(field.lexeme);
+    public boolean contains(String field) {
+        if (fields.containsKey(field)) {
+            return true;
         }
         if (loxClass == null) {
+            return false;
+        }
+        return loxClass.getMethod(field) != null;
+    }
+
+    public Object get(Token field) {
+//        if (fields.containsKey(field.lexeme)) {
+//            return fields.get(field.lexeme);
+//        }
+//        if (loxClass == null) {
+//            throw new LoxRuntimeError(field, "the field or method does not exist");
+//        }
+//        LoxFunction original = loxClass.getMethod(field.lexeme);
+//        if (original == null) {
+//            throw new LoxRuntimeError(field, "the field or method does not exist");
+//        }
+//        return original.binding(this);
+        try {
+            return get(field.lexeme);
+        }catch (LoxRuntimeError e) {
             throw new LoxRuntimeError(field, "the field or method does not exist");
         }
-        LoxFunction original = loxClass.getMethod(field.lexeme);
+    }
+
+    public Object get(String field) {
+         if (fields.containsKey(field)) {
+            return fields.get(field);
+        }
+        if (loxClass == null) {
+            throw new LoxRuntimeError(null, "the field or method does not exist");
+        }
+        LoxFunction original = loxClass.getMethod(field);
         if (original == null) {
-            throw new LoxRuntimeError(field, "the field or method does not exist");
+            throw new LoxRuntimeError(null, "the field or method does not exist");
         }
         return original.binding(this);
     }

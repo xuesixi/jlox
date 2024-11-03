@@ -11,26 +11,14 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     private Environment environment = global;
 
     public Interpreter() {
-        global.define("clock", new LoxCallable() {
-            @Override
-            public int arity() {
-                return 0;
-            }
-
-            @Override
-            public Object call(Interpreter interpreter, List<Object> arguments) {
-                return System.currentTimeMillis()/1000.0;
-            }
-
-            @Override
-            public String toString() {
-                return "<function: clock>";
-            }
-        });
+        setupNative();
+        setupArrayClass();
+        setupList();
     }
 
     /**
      * 运行一个语句列表
+     *
      * @param statementList 我们想要执行的语句列表，这个期间可能会出现运行时错误
      */
     public void interpret(List<Stmt> statementList) {
@@ -46,6 +34,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
     /**
      * 对一个表达式求值
+     *
      * @param expr 想要求值的表达式
      * @return 该表达式的“值”
      */
@@ -55,6 +44,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
     /**
      * 运行一个语句
+     *
      * @param stmt 想要运行的语句
      * @return 一般来说，为 Void
      */
@@ -82,8 +72,9 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
     /**
      * 切换到目标环境，执行语句，然后切换回原环境
+     *
      * @param statements 要执行的语句
-     * @param env 执行语句的环境
+     * @param env        执行语句的环境
      */
     public void executeWithEnvironment(List<Stmt> statements, Environment env) {
         Environment old = this.environment;
@@ -100,6 +91,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
     /**
      * 判断一个值是否为 Lox 意义上的“true”。只有 null 和 false 为 false，其他都是 true
+     *
      * @param a 想要判断的值
      * @return 是否为真
      */
@@ -115,6 +107,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
     /**
      * 判断两个“值”是否相等。它对 null 有特殊处理。两个 null 是相等的。
+     *
      * @param a 值1
      * @param b 值2
      * @return 是否相等
@@ -149,6 +142,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
     /**
      * 对于一个“值”，返回它的字符串表达方式。
+     *
      * @param object 想要表达的值
      * @return 字符串表达
      */
@@ -163,6 +157,12 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
             }
             return text;
         }
+//        if (object instanceof LoxInstance) {
+//            if (((LoxInstance) object).contains("loxString")) {
+//                LoxCallable callable = (LoxCallable) ((LoxInstance) object).get("loxString");
+//                return callable.call(this, new ArrayList<>()).toString();
+//            }
+//        }
 
         return object.toString();
     }
@@ -240,14 +240,14 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
             arguments.add(value);
         }
         Object called = evaluate(expr.callee);
-        if (! (called instanceof LoxCallable)) {
+        if (!(called instanceof LoxCallable)) {
             throw new LoxRuntimeError(expr.paren, "the value " + stringify(called) + " is not callable");
         }
-        LoxCallable function = (LoxCallable) called;
-        if (function.arity() != arguments.size()) {
-            throw new LoxRuntimeError(expr.paren, "the callable " + stringify(called) + " expects " + function.arity() + " arguments, but got " + arguments.size());
+        LoxCallable callable = (LoxCallable) called; // not necessary function. Can be class, function, native (e.g. clock)
+        if (callable.arity() != arguments.size()) {
+            throw new LoxRuntimeError(expr.paren, "the callable " + stringify(called) + " expects " + callable.arity() + " arguments, but got " + arguments.size());
         }
-        return function.call(this, arguments);
+        return callable.call(this, arguments);
     }
 
     @Override
@@ -355,7 +355,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         }
         try {
             return ((LoxArray) arr).getAtIndex(index);
-        }catch (IndexOutOfBoundsException e) {
+        } catch (IndexOutOfBoundsException e) {
             throw new LoxRuntimeError(expr.rightBracket, "%d is out of bound of %d".formatted(index, ((LoxArray) arr).getLength()));
         }
 
@@ -380,7 +380,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         try {
             ((LoxArray) arr).setAtIndex(index, value);
             return value;
-        }catch (IndexOutOfBoundsException e) {
+        } catch (IndexOutOfBoundsException e) {
             throw new LoxRuntimeError(keyword, "%d is out of bound of %d".formatted(index, ((LoxArray) arr).getLength()));
         }
     }
@@ -396,6 +396,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
     /**
      * 对形如 (a, (dog.name, arr[3]), b) = nums 的元组进行解构
+     *
      * @param expr 形如 {@code  (a, (dog.name, arr[3]), b) = nums }的元组
      * @return {@code null}
      */
@@ -435,7 +436,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
                 // 如果左侧是另一个元组，那么递归地进行赋值
                 Expr.TupleExpr temp = (Expr.TupleExpr) left;
                 Expr right = new Expr.Literal(value);
-                Expr.TupleUnpackExpr newExp = new Expr.TupleUnpackExpr(temp, right,  expr.equal);
+                Expr.TupleUnpackExpr newExp = new Expr.TupleUnpackExpr(temp, right, expr.equal);
                 evaluate(newExp);
             } else {
                 throw new LoxRuntimeError(expr.equal, "%s is not a valid assign target".formatted(stringify(evaluate(left))));
@@ -456,8 +457,8 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         Environment oldEnv = environment;
         this.environment = new Environment(oldEnv);
 
-        HashMap<String , LoxFunction> methods = new HashMap<>();
-        HashMap<String , Object> staticFields = new HashMap<>();
+        HashMap<String, LoxFunction> methods = new HashMap<>();
+        HashMap<String, Object> staticFields = new HashMap<>();
 
         for (Stmt.Function method : stmt.methods) {
             LoxFunction function = new LoxFunction(method, this.environment, method.name.lexeme.equals("init"));
@@ -493,8 +494,8 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     public Void visitExpressionStmt(Stmt.Expression stmt) {
         Object value = evaluate(stmt.expression);
         if (Lox.repl) {
-            // in repl mode, an expression statement will print out its result
-            if (value != null) {
+            // in repl mode, a non-assignment expression statement will print out the expression result
+            if (value != null && ! Expr.isAssignment(stmt.expression)) {
                 System.out.println(stringify(value));
             }
         }
@@ -512,7 +513,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     public Void visitIfStmt(Stmt.If stmt) {
         if (isTrue(evaluate(stmt.condition))) {
             execute(stmt.thenBranch);
-        } else if (stmt.elseBranch != null){
+        } else if (stmt.elseBranch != null) {
             execute(stmt.elseBranch);
         }
         return null;
@@ -564,20 +565,11 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     @Override
     public Void visitImportStmt(Stmt.Import stmt) {
         // the resolver assures that the path does not end with .lox
+
         String pathString = stmt.path.literal.toString();
-        Path path = Path.of(pathString + ".lox");
         try {
-            String moduleSrc = Files.readString(path);
-            List<Token> tokens =  new LoxScanner(moduleSrc).scanTokens();
-            List<Stmt> statements = new LoxParser(tokens).parse();
-            new LoxResolver(this).resolve(statements);
+            Environment moduleEnv = importFile(stmt.path.literal.toString());
 
-            Environment old = this.environment;
-            Environment moduleEnv = new Environment();
-            this.environment = moduleEnv;
-            this.interpret(statements);
-
-            this.environment = old;
             if (stmt.items.isEmpty()) {
                 // 如果是 import "huhu"; 式的全部导入，那么在当前环境中创建一个 huhu 对象。
                 LoxInstance module = new LoxInstance.LoxModule(pathString, moduleEnv);
@@ -588,15 +580,28 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
                     this.environment.define(item.lexeme, moduleEnv.get(item));
                 }
             }
-
         } catch (IOException e) {
             throw new LoxRuntimeError(stmt.path, "No module found at the given path");
         }
         return null;
     }
 
+    private Environment importFile(String pathString) throws IOException {
+        // the resolver assures that the path does not end with .lox
+        Path path = Path.of(pathString + ".lox");
+        String moduleSrc = Files.readString(path);
+        List<Token> tokens = new LoxScanner(moduleSrc).scanTokens();
+        List<Stmt> statements = new LoxParser(tokens).parse();
+        new LoxResolver(this).resolve(statements);
+
+        Environment moduleEnv = new Environment();
+        executeWithEnvironment(statements, moduleEnv);
+        return moduleEnv;
+    }
+
     /**
      * 对于形如 (a, (b, c), d) 的元组，把其中的每一个标识符都在当前环境中定义
+     *
      * @param expr 形如 (a, (b, c), d) 的元组
      */
     private void defineIdentifierTuple(Expr.TupleExpr expr) {
@@ -609,5 +614,56 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
                 throw new LoxRuntimeError(null, "tuple var declare with invalid variable");
             }
         }
+    }
+
+    private void setupNative() {
+        global.define("clock", new LoxCallable() {
+            @Override
+            public int arity() {
+                return 0;
+            }
+
+            @Override
+            public Object call(Interpreter interpreter, List<Object> arguments) {
+                return System.currentTimeMillis() / 1000.0;
+            }
+
+            @Override
+            public String toString() {
+                return "<function: clock>";
+            }
+        });
+
+        global.define("panic", new LoxCallable() {
+            @Override
+            public int arity() {
+                return 1;
+            }
+
+            @Override
+            public Object call(Interpreter interpreter, List<Object> arguments) {
+                throw new LoxRuntimeError(null, arguments.getFirst().toString());
+            }
+            @Override
+            public String toString() {
+                return "<function: panic>";
+            }
+        });
+
+    }
+
+    private void setupArrayClass() {
+        try {
+            Environment moduleEnv = importFile("ArrayClass");
+            LoxArray.loxArrayClass = (LoxClass) moduleEnv.get("ArrayClass");
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+    private void setupList() {
+        Token path = new Token(TokenType.STRING, "List", "List", -1);
+        List<Token> items = List.of(new Token(TokenType.IDENTIFIER, "List", null, -1));
+        Stmt.Import anImport = new Stmt.Import(path, items);
+        execute(anImport);
     }
 }
