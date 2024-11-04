@@ -4,6 +4,8 @@ var huhu = "andalusia";
 
 print f "the length is {native.len(huhu)}";
 
-for (var i = 0; i < native.len(huhu); i = i + 1) {
-    print native.charAt(huhu, i);
+var arr = (1, 2, 3);
+
+with num in arr {
+    print num;
 }

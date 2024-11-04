@@ -5,7 +5,7 @@ class ArrayIterator {
     }
 
     hasNext() {
-        return this.curr < this.array.length;
+        return this.curr < this.array.length();
     }
 
     next() {

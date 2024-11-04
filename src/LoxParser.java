@@ -32,7 +32,7 @@ public class LoxParser {
             if (match(TokenType.VAR)) {
                 if (match(TokenType.LEFT_PAREN)) {
                     return varTuple();
-                }else {
+                } else {
                     return varDeclaration();
                 }
             } else if (match(TokenType.CLASS)) {
@@ -126,8 +126,9 @@ public class LoxParser {
             return forStatement();
         } else if (match(TokenType.RETURN)) {
             return returnStatement();
-        }
-        else {
+        } else if (match(TokenType.WITH)) {
+            return withEachStatement();
+        } else {
             return expressionStatement();
         }
     }
@@ -222,6 +223,53 @@ public class LoxParser {
         }
     }
 
+    private Stmt withEachStatement() {
+        Expr.TupleExpr leftTuple = null;
+        Token leftToken = null;
+
+        if (match(TokenType.LEFT_PAREN)) {
+            leftTuple = identifierTuple();
+        } else {
+            leftToken = consume(TokenType.IDENTIFIER, "An identifier is needed for with statement");
+        }
+
+        Token tokenIN = consume(TokenType.IN, "An in is needed for with statement");
+        Expr arr = expression();
+        Stmt body = statement();
+
+        Token iter_fun = new Token(TokenType.IDENTIFIER, "iter", null, tokenIN.line);
+        Expr arr_iter = new Expr.Get(arr, iter_fun); // arr.iter
+
+        Expr arr_iter_call = new Expr.Call(arr_iter, tokenIN, new ArrayList<>()); // arr.iter()
+
+        Token var_iter = new Token(TokenType.IDENTIFIER, "iter", null, tokenIN.line);
+        Stmt var_iter_stmt = new Stmt.Var(var_iter, arr_iter_call); // var iter = arr.iter()
+
+        Expr iter_1 = new Expr.Variable(var_iter);
+        Token hasNext = new Token(TokenType.IDENTIFIER, "hasNext", null, tokenIN.line);
+        Expr iter_hasNext = new Expr.Get(iter_1, hasNext); // iter.hasNext
+        Expr condition = new Expr.Call(iter_hasNext, tokenIN, new ArrayList<>()); // iter.hasNext()
+
+        Expr iter_2 = new Expr.Variable(var_iter);
+        Token next = new Token(TokenType.IDENTIFIER, "next", null, tokenIN.line);
+        Expr iter_next = new Expr.Get(iter_2, next); // iter.next
+        Expr iter_next_call = new Expr.Call(iter_next, tokenIN, new ArrayList<>()); // iter.next()
+
+        Stmt loop_variable;
+        if (leftToken != null) {
+            loop_variable = new Stmt.Var(leftToken, iter_next_call);
+        } else {
+            loop_variable = new Stmt.VarTuple(leftTuple, iter_next_call, tokenIN);
+        }
+
+        Stmt realBody = new Stmt.Block(List.of(loop_variable, body));
+
+        Stmt whileStmt = new Stmt.While(condition, realBody);
+        Stmt wholeStmt = new Stmt.Block(List.of(var_iter_stmt, whileStmt));
+
+        return wholeStmt;
+    }
+
     private Stmt whileStatement() {
         consume(TokenType.LEFT_PAREN, "A left parenthesis is required for while statement");
         Expr condition = expression();
@@ -274,6 +322,7 @@ public class LoxParser {
 
     /**
      * 所有赋值语句
+     *
      * @return 变量赋值语句，对象字段赋值语句，数组赋值语句
      */
     private Expr assignment() {
@@ -290,7 +339,7 @@ public class LoxParser {
             } else if (expr instanceof Expr.ArrayGetExpr) {
                 Expr value = assignment();
                 Expr.ArrayGetExpr access = (Expr.ArrayGetExpr) expr;
-                return new Expr.ArraySetExpr(access.array, access.index, value, access.rightBracket );
+                return new Expr.ArraySetExpr(access.array, access.index, value, access.rightBracket);
             } else if (expr instanceof Expr.TupleExpr) {
                 Expr right = assignment();
                 return new Expr.TupleUnpackExpr((Expr.TupleExpr) expr, right, equal);
@@ -457,6 +506,7 @@ public class LoxParser {
 
     /**
      * 匹配形如 a, b+c, d(), (e)) 的元组。
+     *
      * @return 一个包含可以包含任何表达式的元祖。
      */
     private Expr.TupleExpr generalTuple(List<Expr> exprList) {
@@ -469,6 +519,7 @@ public class LoxParser {
 
     /**
      * 匹配形如 a, (b, c) ) 的元祖
+     *
      * @return 仅仅包含标识符的 tuple 表达式。用在变量定义之中
      */
     private Expr.TupleExpr identifierTuple() {
@@ -487,6 +538,7 @@ public class LoxParser {
 
     /**
      * 现有的问题：仅用正则表达式无法处理嵌套的{}，可以考虑改成栈式解析器
+     *
      * @return fstring
      */
     private Expr fstring() {

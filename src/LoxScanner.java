@@ -27,6 +27,8 @@ public class LoxScanner {
         typeMap.put("static", TokenType.STATIC);
         typeMap.put("import", TokenType.IMPORT);
         typeMap.put("native", TokenType.NATIVE);
+        typeMap.put("in", TokenType.IN);
+        typeMap.put("with", TokenType.WITH);
     }
 
     private final String source;

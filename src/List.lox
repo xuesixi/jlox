@@ -1,4 +1,22 @@
 class List {
+
+    static from(arr) {
+        var list = List(arr.length() + 5);
+        for (var i = 0; i < arr.length(); i = i + 1) {
+            list.backing[i] = arr[i];
+        }
+        list.size = arr.length();
+        return list;
+    }
+
+    static into(arr) {
+        var list = List(1);
+        list.backing = arr;
+        list.capacity = arr.length();
+        list.size = arr.length();
+        return list;
+    }
+
     init(capacity) {
         this.backing = [capacity];
         this.capacity = capacity;
