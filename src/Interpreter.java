@@ -7,6 +7,7 @@ import java.util.List;
 
 public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     public Environment global = new Environment(); // global 用来储存全局变量
+    private LoxInstance nativeObject = new LoxInstance((LoxClass) null);
     private final HashMap<Expr, Integer> locals = new HashMap<>(); // 每一个变量表达式所访问的变量的深度。
     private Environment environment = global;
 
@@ -128,6 +129,11 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         }
     }
 
+    /**
+     *
+     * @param value any object
+     * @return -1 if not valid
+     */
     private int validUint(Object value) {
         if (!(value instanceof Double)) {
             return -1;
@@ -446,6 +452,11 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
 
     @Override
+    public Object visitNativeExpr(Expr.Native expr) {
+        return nativeObject;
+    }
+
+    @Override
     public Void visitBlockStmt(Stmt.Block stmt) {
         Environment newEnv = new Environment(this.environment);
         executeWithEnvironment(stmt.statements, newEnv);
@@ -617,7 +628,8 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
 
     private void setupNative() {
-        global.define("clock", new LoxCallable() {
+
+        nativeObject.set("clock", new LoxCallable() {
             @Override
             public int arity() {
                 return 0;
@@ -628,13 +640,11 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
                 return System.currentTimeMillis() / 1000.0;
             }
 
-            @Override
             public String toString() {
-                return "<function: clock>";
+                return "<native: clock>";
             }
         });
-
-        global.define("panic", new LoxCallable() {
+        nativeObject.set("panic", new LoxCallable() {
             @Override
             public int arity() {
                 return 1;
@@ -646,7 +656,54 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
             }
             @Override
             public String toString() {
-                return "<function: panic>";
+                return "<native: panic>";
+            }
+        });
+
+        nativeObject.set("len", new LoxCallable() {
+            @Override
+            public int arity() {
+                return 1;
+            }
+
+            @Override
+            public Object call(Interpreter interpreter, List<Object> arguments) {
+                Object arg = arguments.get(0);
+                if (arg instanceof LoxArray) {
+                    return (double)((LoxArray) arg).getLength();
+                } else if (arg instanceof String) {
+                    return (double)((String) arg).length();
+                } else {
+                    return null;
+                }
+            }
+
+            @Override
+            public String toString() {
+                return "<native: len>";
+            }
+        });
+
+        nativeObject.set("charAt", new LoxCallable() {
+            @Override
+            public int arity() {
+                return 2;
+            }
+
+            @Override
+            public Object call(Interpreter interpreter, List<Object> arguments) {
+                String str = (String) arguments.get(0);
+                Double index = (Double) arguments.get(1);
+                int i = validUint(index);
+                if (i < 0) {
+                    return null;
+                }else {
+                    return String.valueOf(str.charAt(i));
+                }
+            }
+            @Override
+            public String toString() {
+                return "<native: charAt>";
             }
         });
 

@@ -19,6 +19,7 @@ public abstract class Expr {
     R visitArraySetExpr(ArraySetExpr expr);
     R visitTupleExpr(TupleExpr expr);
     R visitTupleUnpackExpr(TupleUnpackExpr expr);
+    R visitNativeExpr(Native expr);
   }
   public static class Assign extends Expr {
     Assign(Token name, Expr value) {
@@ -273,6 +274,19 @@ public abstract class Expr {
     @Override
     <R> R accept(Visitor<R> visitor) {
       return visitor.visitTupleUnpackExpr(this);
+    }
+  }
+
+  public static class Native extends Expr {
+    Token keyword;
+
+    public Native(Token keyword) {
+      this.keyword = keyword;
+    }
+
+    @Override
+    <R> R accept(Visitor<R> visitor) {
+      return visitor.visitNativeExpr(this);
     }
   }
 

@@ -18,5 +18,9 @@ class ArrayClass {
     iter() {
         return ArrayIterator(this);
     }
+
+    length() {
+        return native.len(this);
+    }
 }
 

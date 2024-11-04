@@ -448,6 +448,9 @@ public class LoxParser {
             List<Expr> exprList = arrayCreation();
             return new Expr.ArrayCreationExpr(exprList, previous());
         }
+        if (match(TokenType.NATIVE)) {
+            return new Expr.Native(previous());
+        }
         // unrecognized token
         throw parseError(peek(), "The token is at the inappropriate position");
     }

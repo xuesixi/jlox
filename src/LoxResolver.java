@@ -50,7 +50,7 @@ public class LoxResolver implements Stmt.Visitor<Void>, Expr.Visitor<Void> {
             }
         }
         if (!Lox.repl) {
-            System.out.printf("the variable [%s] is not resolved, and left to runtime\n", token.lexeme);
+            System.out.printf("Resolver Warning: the variable [%s] is not resolved, and left to runtime\n", token.lexeme);
         }
     }
 
@@ -193,6 +193,11 @@ public class LoxResolver implements Stmt.Visitor<Void>, Expr.Visitor<Void> {
     public Void visitTupleUnpackExpr(Expr.TupleUnpackExpr expr) {
         resolve(expr.right);
         resolve(expr.left);
+        return null;
+    }
+
+    @Override
+    public Void visitNativeExpr(Expr.Native expr) {
         return null;
     }
 

@@ -7,7 +7,7 @@ class List {
 
     boundCheck(index, up) {
         if (index < 0 or index > up) {
-            print (f "index out of bound: {index}, should be [0, {up}]");
+            native.panic(f "index out of bound: {index}, should be [0, {up}]");
         }
     }
 
