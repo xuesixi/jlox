@@ -342,8 +342,17 @@ public class LoxResolver implements Stmt.Visitor<Void>, Expr.Visitor<Void> {
      * @param tupleExpr 一个仅有标识符或者标识符元祖的元祖
      */
     public void resolveVariableOnlyTuple(Expr.TupleExpr tupleExpr) {
+//        for (Expr expr : tupleExpr.exprList) {
+//            if (expr instanceof Expr.Variable || expr instanceof Expr.TupleExpr) {
+//                resolve(expr);
+//            } else {
+//                Lox.resolvingError(-1, "tuple", "not valid variable to declare");
+//            }
+//        }
         for (Expr expr : tupleExpr.exprList) {
-            if (expr instanceof Expr.Variable || expr instanceof Expr.TupleExpr) {
+            if (expr instanceof Expr.Variable ) {
+                define(((Expr.Variable) expr).name);
+            } else if (expr instanceof Expr.TupleExpr) {
                 resolve(expr);
             } else {
                 Lox.resolvingError(-1, "tuple", "not valid variable to declare");

@@ -1,3 +1,19 @@
+class ListIter {
+    init(list) {
+        this.curr = 0;
+        this.list = list;
+    }
+
+    hasNext() {
+        return this.curr < this.list.size;
+    }
+
+    next() {
+        this.curr = this.curr + 1;
+        return this.list.backing[this.curr-1];
+    }
+}
+
 class List {
 
     static from(arr) {
@@ -36,6 +52,10 @@ class List {
 
     add(value) {
         this.addToIndex(this.size, value);
+    }
+
+    iter() {
+        return ListIter(this);
     }
 
     addToIndex(index, value) {

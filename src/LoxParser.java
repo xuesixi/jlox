@@ -223,6 +223,24 @@ public class LoxParser {
         }
     }
 
+    /**
+     * transform
+     * <pre>
+     *     with num in arr
+     *         body
+     * </pre>
+     * to
+     * <pre>
+     *     {
+     *         var iter = arr.iter();
+     *         while (iter.hasNext()) {
+     *             var num = iter.next();
+     *             body
+     *         }
+     *     }
+     * </pre>
+     * @return
+     */
     private Stmt withEachStatement() {
         Expr.TupleExpr leftTuple = null;
         Token leftToken = null;
@@ -345,6 +363,39 @@ public class LoxParser {
                 return new Expr.TupleUnpackExpr((Expr.TupleExpr) expr, right, equal);
             }
             parseError(equal, "Invalid assignment target");
+        } else if (match(TokenType.PLUS_EQUAL, TokenType.MINUS_EQUAL, TokenType.STAR_EQUAL, TokenType.SLASH_EQUAL)) {
+            Token just = previous();
+            Token operator = switch (just.type) {
+                case PLUS_EQUAL -> new Token(TokenType.PLUS, "+", null, just.line);
+                case MINUS_EQUAL -> new Token(TokenType.MINUS, "-", null, just.line);
+                case STAR_EQUAL -> new Token(TokenType.STAR, "*", null, just.line);
+                case SLASH_EQUAL -> new Token(TokenType.SLASH, "/", null, just.line);
+                default -> null;
+            };
+            Expr right = expression();
+            Expr value = new Expr.Binary(expr, operator, right);
+            if (expr instanceof Expr.Variable) {
+                return new Expr.Assign(((Expr.Variable) expr).name, value);
+            } else if (expr instanceof Expr.Get) {
+                return new Expr.Set(((Expr.Get) expr).object, ((Expr.Get) expr).name, value);
+            } else if (expr instanceof Expr.ArrayGetExpr) {
+                return new Expr.ArraySetExpr(((Expr.ArrayGetExpr) expr).array, ((Expr.ArrayGetExpr) expr).index, value, ((Expr.ArrayGetExpr) expr).rightBracket);
+            }
+        } else if (match(TokenType.PLUS_PLUS, TokenType.MINUS_MINUS)) {
+            Token just = previous();
+            Token operator = switch (just.type) {
+                case PLUS_PLUS -> new Token(TokenType.PLUS, "+", null, just.line);
+                case MINUS_MINUS -> new Token(TokenType.MINUS, "-", null, just.line);
+                default -> null;
+            };
+            Expr value = new Expr.Binary(expr, operator, new Expr.Literal(1.0));
+            if (expr instanceof Expr.Variable) {
+                return new Expr.Assign(((Expr.Variable) expr).name, value);
+            } else if (expr instanceof Expr.Get) {
+                return new Expr.Set(((Expr.Get) expr).object, ((Expr.Get) expr).name, value);
+            } else if (expr instanceof Expr.ArrayGetExpr) {
+                return new Expr.ArraySetExpr(((Expr.ArrayGetExpr) expr).array, ((Expr.ArrayGetExpr) expr).index, value, ((Expr.ArrayGetExpr) expr).rightBracket);
+            }
         }
         return expr;
     }

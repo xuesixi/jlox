@@ -1,11 +1,9 @@
+var arr = ((1, 2), (3, 4), (5, 5), (7, 9));
 
+with (one, two) in arr {
+    print f "one is {one}, two is {two}";
+}
 
-var huhu = "andalusia";
-
-print f "the length is {native.len(huhu)}";
-
-var arr = (1, 2, 3);
-
-with num in arr {
-    print num;
+with a in arr {
+    print f "a is {a}";
 }

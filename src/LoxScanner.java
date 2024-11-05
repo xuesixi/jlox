@@ -78,16 +78,32 @@ public class LoxScanner {
                 addToken(TokenType.DOT);
                 break;
             case '-':
-                addToken(TokenType.MINUS);
+                if (match('=')) {
+                    addToken(TokenType.MINUS_EQUAL);
+                } else if (match('-')) {
+                    addToken(TokenType.MINUS_MINUS);
+                } else {
+                    addToken(TokenType.MINUS);
+                }
                 break;
             case '+':
-                addToken(TokenType.PLUS);
+                if (match('=')) {
+                    addToken(TokenType.PLUS_EQUAL);
+                } else if (match('+')) {
+                    addToken(TokenType.PLUS_PLUS);
+                } else {
+                    addToken(TokenType.PLUS);
+                }
                 break;
             case ';':
                 addToken(TokenType.SEMICOLON);
                 break;
             case '*':
-                addToken(TokenType.STAR);
+                if (match('=')) {
+                    addToken(TokenType.STAR_EQUAL);
+                } else {
+                    addToken(TokenType.STAR);
+                }
                 break;
             case ':':
                 addToken(TokenType.COLON);
@@ -105,7 +121,9 @@ public class LoxScanner {
                 addToken(match('=') ? TokenType.EQUAL_EQUAL : TokenType.EQUAL);
                 break;
             case '/':
-                if (match('/')) {
+                if (match('=')) {
+                    addToken(TokenType.SLASH_EQUAL);
+                } else if (match('/')) {
                     while (!isEnd() && peek() != '\n') {
                         current++;
                     }
