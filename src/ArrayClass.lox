@@ -14,7 +14,7 @@ class ArrayIterator {
     }
 }
 
-class ArrayClass {
+class Array {
     iter() {
         return ArrayIterator(this);
     }

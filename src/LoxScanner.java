@@ -29,6 +29,7 @@ public class LoxScanner {
         typeMap.put("native", TokenType.NATIVE);
         typeMap.put("in", TokenType.IN);
         typeMap.put("with", TokenType.WITH);
+        typeMap.put("public", TokenType.PUBLIC);
     }
 
     private final String source;

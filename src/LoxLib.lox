@@ -1,0 +1,138 @@
+class EnumIterator {
+    // inner is another iterator
+    init(inner) {
+        this.inner = inner;
+        this.curr = 0;
+    }
+    hasNext() {
+        return this.inner.hasNext();
+    }
+    next() {
+        this.curr ++;
+        return (this.curr-1, this.inner.next());
+    }
+}
+
+class EnumIterable {
+    init(inner) {
+        this.inner = inner;
+    }
+    iter() {
+        return EnumIterator(this.inner.iter());
+    }
+}
+
+fun enum(iterable) {
+    return EnumIterable(iterable);
+}
+
+class RangeIterator {
+    init(limit) {
+        this.limit = limit;
+        this.curr = 0;
+    }
+    hasNext() {
+        return this.curr < this.limit;
+    }
+    next() {
+        this.curr ++;
+        return this.curr-1;
+    }
+}
+
+class RangeObject {
+    init(limit) {
+        this.limit = limit;
+    }
+    iter() {
+        return RangeIterator(this.limit);
+    }
+}
+
+fun range(limit) {
+    return RangeObject(limit);
+}
+
+fun type(o) {
+    return native.type(o);
+}
+
+fun is(o, clazz) {
+    return native.is(o, clazz);
+}
+
+class ListIter {
+    init(list) {
+        this.curr = 0;
+        this.list = list;
+    }
+
+    hasNext() {
+        return this.curr < this.list.size;
+    }
+
+    next() {
+        this.curr = this.curr + 1;
+        return this.list.backing[this.curr-1];
+    }
+}
+
+class List {
+
+    static from(arr) {
+        var list = List(arr.length() + 5);
+        for (var i = 0; i < arr.length(); i = i + 1) {
+            list.backing[i] = arr[i];
+        }
+        list.size = arr.length();
+        return list;
+    }
+
+    init(capacity) {
+        this.backing = [capacity];
+        this.capacity = capacity;
+        this.size = 0;
+    }
+
+    boundCheck(index, up) {
+        if (index < 0 or index > up) {
+            native.panic(f "index out of bound: {index}, should be [0, {up}]");
+        }
+    }
+
+    get(index) {
+        this.boundCheck(index, this.size - 1);
+        return this.backing[index];
+    }
+
+    add(value) {
+        this.addToIndex(this.size, value);
+    }
+
+    iter() {
+        return ListIter(this);
+    }
+
+    addToIndex(index, value) {
+        this.boundCheck(index, this.size);
+        if (this.size == this.capacity) {
+            this.resize();
+        }
+        for (var i = this.size; i > index; i = i - 1) {
+            this.backing[i] = this.backing[i-1];
+        }
+        this.backing[index] = value;
+        this.size = this.size + 1;
+    }
+
+    resize() {
+        this.capacity = this.capacity * 2;
+        var newBacking = [this.capacity];
+        for (var i = 0; i < this.size; i = i + 1) {
+            newBacking[i] = this.backing[i];
+        }
+        this.backing = newBacking;
+    }
+}
+
+

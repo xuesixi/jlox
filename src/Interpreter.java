@@ -14,7 +14,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     public Interpreter() {
         setupNative();
         setupArrayClass();
-        setupList();
+        loadLoxLib();
     }
 
     /**
@@ -707,20 +707,82 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
             }
         });
 
+        nativeObject.set("type", new LoxCallable() {
+            @Override
+            public int arity() {
+                return 1;
+            }
+
+            @Override
+            public Object call(Interpreter interpreter, List<Object> arguments) {
+                Object o = arguments.get(0);
+                if (o instanceof Double) {
+                    return "<Number>";
+                } else if (o instanceof String) {
+                    return "<String>";
+                } else if (o instanceof Boolean) {
+                    return "<Boolean>";
+                } else if (o instanceof LoxFunction) {
+                    return "<Function>";
+                } else if (o instanceof LoxClass) {
+                    return "<Class>";
+                } else if (o instanceof LoxInstance) {
+                    return "<%s>".formatted(((LoxInstance) o).getLoxClass().name);
+                } else {
+                    throw new LoxRuntimeError(null, "Invalid argument for native.type");
+                }
+            }
+            @Override
+            public String toString() {
+                return "<native: type>";
+            }
+        });
+
+        nativeObject.set("is", new LoxCallable() {
+            @Override
+            public int arity() {
+                return 2;
+            }
+
+            @Override
+            public Object call(Interpreter interpreter, List<Object> arguments) {
+                Object o = arguments.get(0);
+                if (!(o instanceof LoxInstance)) {
+                    throw new LoxRuntimeError(null, "%s is not an object".formatted(stringify(o)));
+                }
+                Object className = arguments.get(1);
+                return ((LoxInstance) o).getLoxClass() == className;
+            }
+
+            @Override
+            public String toString() {
+                return "<native: is>";
+            }
+
+        });
+
     }
 
     private void setupArrayClass() {
         try {
             Environment moduleEnv = importFile("ArrayClass");
-            LoxArray.loxArrayClass = (LoxClass) moduleEnv.get("ArrayClass");
+            Object arr = moduleEnv.get("Array");
+            LoxArray.loxArrayClass = (LoxClass) arr;
+            this.environment.define("Array", arr);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
-    private void setupList() {
-        Token path = new Token(TokenType.STRING, "List", "List", -1);
-        List<Token> items = List.of(new Token(TokenType.IDENTIFIER, "List", null, -1));
-        Stmt.Import anImport = new Stmt.Import(path, items);
-        execute(anImport);
+
+    private void loadLoxLib() {
+        try {
+            Environment moduleEnv = importFile("LoxLib");
+            List<String> imported = List.of("enum", "range", "is", "type", "List");
+            for (String name : imported) {
+                this.environment.define(name, moduleEnv.get(name));
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

@@ -86,4 +86,8 @@ public class LoxInstance {
             return "<module: %s>".formatted(moduleName);
         }
     }
+
+    public LoxClass getLoxClass() {
+        return loxClass;
+    }
 }
