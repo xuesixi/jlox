@@ -554,6 +554,12 @@ public class LoxParser {
         if (match(TokenType.NATIVE)) {
             return new Expr.Native(previous());
         }
+        if (match(TokenType.SUPER)) {
+            Token superKeyword = previous();
+            consume(TokenType.DOT, "A dot is always needed after super");
+            Token methodName = consume(TokenType.IDENTIFIER, "An method name is always needed after super");
+            return new Expr.Super(superKeyword, methodName);
+        }
         // unrecognized token
         throw parseError(peek(), "The token is at the inappropriate position");
     }

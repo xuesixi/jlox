@@ -462,6 +462,21 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
 
     @Override
+    public Object visitSuperExpr(Expr.Super expr) {
+        Object o = lookupVariable(expr, expr.superKeyword);
+        if (!(o instanceof LoxClass)) {
+            throw new LoxRuntimeError(expr.superKeyword, "The super refers to a non class object! This is a implementation error");
+        }
+        Object o1 = environment.get("this");
+        if (!(o1 instanceof LoxInstance)) {
+            throw new LoxRuntimeError(expr.superKeyword, "The this refers to a non instance object! This is a implementation error");
+        }
+        LoxClass superClass = (LoxClass) o;
+        LoxInstance thisObject = (LoxInstance) o1;
+        return superClass.getMethod(expr.methodName.lexeme).binding(thisObject);
+    }
+
+    @Override
     public Void visitBlockStmt(Stmt.Block stmt) {
         Environment newEnv = new Environment(this.environment);
         executeWithEnvironment(stmt.statements, newEnv);
@@ -482,6 +497,8 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
                 throw new LoxRuntimeError(stmt.superName.name, "This cannot be used as super class");
             }
         }
+
+        // class 內部存在一個新的環境，用於儲存靜態字段和靜態方法
         this.environment = new Environment(oldEnv);
 
         HashMap<String, LoxFunction> methods = new HashMap<>();
@@ -509,6 +526,8 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
             environment.define(staticVariable.name.lexeme, value); // 环境定义
             staticFields.put(staticVariable.name.lexeme, value); // 字段添加
         }
+
+        environment.define("super", superclass);
 
         LoxClass loxClass = new LoxClass(stmt.name.lexeme, methods, staticFields, superclass);
         this.environment = oldEnv;

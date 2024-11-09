@@ -151,7 +151,7 @@ public class LoxResolver implements Stmt.Visitor<Void>, Expr.Visitor<Void> {
     @Override
     public Void visitThisExpr(Expr.This expr) {
         if (classType != ClassType.Class) {
-            Lox.resolvingError(expr.keyword.line, expr.keyword.lexeme, "the return keyword is only allowed inside a function");
+            Lox.resolvingError(expr.keyword.line, expr.keyword.lexeme, "the this keyword is only allowed inside a class");
             return null;
         }
         resolveLocal(expr, expr.keyword);
@@ -201,6 +201,16 @@ public class LoxResolver implements Stmt.Visitor<Void>, Expr.Visitor<Void> {
         return null;
     }
 
+    @Override
+    public Void visitSuperExpr(Expr.Super expr) {
+        if (classType != ClassType.Class) {
+            Lox.resolvingError(expr.superKeyword.line, expr.superKeyword.lexeme, "the this keyword is only allowed inside a class");
+            return null;
+        }
+        resolveLocal(expr, expr.superKeyword);
+        return null;
+    }
+
     /**
      * block具有新一层 scope
      * @param stmt block
@@ -225,7 +235,8 @@ public class LoxResolver implements Stmt.Visitor<Void>, Expr.Visitor<Void> {
         }
         ClassType old = classType;
         classType = ClassType.Class;
-        beginScope(); // 这一层是 class 的静态环境，其中储存着静态函数和静态变量
+        beginScope(); // 这一层是 class 的静态环境，其中储存着静态函数和静态变量, and super
+        scopes.peek().add("super");
         for (Stmt.Var staticVariable : stmt.staticVariables) {
             resolve(staticVariable);
         }

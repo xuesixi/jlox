@@ -20,6 +20,7 @@ public abstract class Expr {
     R visitTupleExpr(TupleExpr expr);
     R visitTupleUnpackExpr(TupleUnpackExpr expr);
     R visitNativeExpr(Native expr);
+    R visitSuperExpr(Super expr);
   }
   public static class Assign extends Expr {
     Assign(Token name, Expr value) {
@@ -287,6 +288,21 @@ public abstract class Expr {
     @Override
     <R> R accept(Visitor<R> visitor) {
       return visitor.visitNativeExpr(this);
+    }
+  }
+
+  public static class Super extends Expr {
+    Token superKeyword;
+    Token methodName;
+
+    public Super(Token superKeyword, Token methodName) {
+      this.superKeyword = superKeyword;
+      this.methodName = methodName;
+    }
+
+    @Override
+    <R> R accept(Visitor<R> visitor) {
+      return visitor.visitSuperExpr(this);
     }
   }
 

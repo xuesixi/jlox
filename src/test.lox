@@ -1,11 +1,10 @@
-
 class Animal {
     init(name) {
         this.name = name;
     }
 
     run() {
-        print f "the animal {this.name} is running!";
+        print f "the Animal {this.name} is running!";
     }
 }
 
@@ -15,7 +14,18 @@ class Dog: Animal {
     init(name) {
         this.name = name;
     }
+    run() {
+        //super.run();
+         print f "the Dog {this.name} is running!";
+    }
 }
 
-var d = Dog("anda");
-d.run();
+class BigDog: Dog {
+    init(name) {
+        super.init(name);
+    }
+}
+
+var bd = BigDog("anda");
+
+bd.run();
