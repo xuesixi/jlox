@@ -1,0 +1,10 @@
+class Origin {
+
+    has(field) {
+        return native.has(this, field);
+    }
+
+    is(o) {
+        return native.is(this, o);
+    }
+}

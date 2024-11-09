@@ -1,9 +1,21 @@
-var arr = ((1, 2), (3, 4), (5, 5), (7, 9));
 
-with (one, two) in arr {
-    print f "one is {one}, two is {two}";
+class Animal {
+    init(name) {
+        this.name = name;
+    }
+
+    run() {
+        print f "the animal {this.name} is running!";
+    }
 }
 
-with a in arr {
-    print f "a is {a}";
+print Animal;
+
+class Dog: Animal {
+    init(name) {
+        this.name = name;
+    }
 }
+
+var d = Dog("anda");
+d.run();

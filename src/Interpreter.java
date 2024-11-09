@@ -7,13 +7,24 @@ import java.util.List;
 
 public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     public Environment global = new Environment(); // global 用来储存全局变量
-    private LoxInstance nativeObject = new LoxInstance((LoxClass) null);
+
+    /**
+     * native object 的父类是 null！
+     */
+    private final LoxInstance nativeObject = new LoxInstance((LoxClass) null);
     private final HashMap<Expr, Integer> locals = new HashMap<>(); // 每一个变量表达式所访问的变量的深度。
     private Environment environment = global;
 
+    /**
+     * native：提供一些底层函数
+     * origin：所有类的父类
+     * core：array 等内建特殊类
+     * lib：并不特殊，但预先导入
+     */
     public Interpreter() {
         setupNative();
-        setupArrayClass();
+        loadLoxOrigin();
+        loadLoxCore();
         loadLoxLib();
     }
 
@@ -163,12 +174,6 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
             }
             return text;
         }
-//        if (object instanceof LoxInstance) {
-//            if (((LoxInstance) object).contains("loxString")) {
-//                LoxCallable callable = (LoxCallable) ((LoxInstance) object).get("loxString");
-//                return callable.call(this, new ArrayList<>()).toString();
-//            }
-//        }
 
         return object.toString();
     }
@@ -466,6 +471,17 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     @Override
     public Void visitClassStmt(Stmt.Class stmt) {
         Environment oldEnv = environment;
+
+        LoxClass superclass = null;
+
+        if (stmt.superName != null) {
+            Object superClassResult = evaluate(stmt.superName);
+            if (superClassResult instanceof LoxClass) {
+                superclass = (LoxClass) superClassResult;
+            } else {
+                throw new LoxRuntimeError(stmt.superName.name, "This cannot be used as super class");
+            }
+        }
         this.environment = new Environment(oldEnv);
 
         HashMap<String, LoxFunction> methods = new HashMap<>();
@@ -494,7 +510,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
             staticFields.put(staticVariable.name.lexeme, value); // 字段添加
         }
 
-        LoxClass loxClass = new LoxClass(stmt.name.lexeme, methods, staticFields);
+        LoxClass loxClass = new LoxClass(stmt.name.lexeme, methods, staticFields, superclass);
         this.environment = oldEnv;
 
         environment.define(stmt.name.lexeme, loxClass);
@@ -668,7 +684,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
             @Override
             public Object call(Interpreter interpreter, List<Object> arguments) {
-                Object arg = arguments.get(0);
+                Object arg = arguments.getFirst();
                 if (arg instanceof LoxArray) {
                     return (double)((LoxArray) arg).getLength();
                 } else if (arg instanceof String) {
@@ -715,7 +731,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
             @Override
             public Object call(Interpreter interpreter, List<Object> arguments) {
-                Object o = arguments.get(0);
+                Object o = arguments.getFirst();
                 if (o instanceof Double) {
                     return "<Number>";
                 } else if (o instanceof String) {
@@ -751,7 +767,10 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
                     throw new LoxRuntimeError(null, "%s is not an object".formatted(stringify(o)));
                 }
                 Object className = arguments.get(1);
-                return ((LoxInstance) o).getLoxClass() == className;
+                if (!(className instanceof LoxClass)) {
+                    throw new LoxRuntimeError(null, "%s is not a class".formatted(stringify(className)));
+                }
+                return ((LoxInstance) o).isInstanceOf(((LoxClass) className));
             }
 
             @Override
@@ -761,11 +780,43 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
         });
 
+        nativeObject.set("has", new LoxCallable() {
+            @Override
+            public int arity() {
+                return 2;
+            }
+
+            @Override
+            public Object call(Interpreter interpreter, List<Object> arguments) {
+                Object arg0 = arguments.get(0);
+                Object arg1 = arguments.get(1);
+                if (!(arg1 instanceof String)) {
+                    throw new LoxRuntimeError(null, "%s needs to be a string".formatted(stringify(arg1)));
+                }
+                if (arg0 instanceof LoxInstance) {
+                    return ((LoxInstance) arg0).contains(((String) arg1));
+                } else {
+                    throw new LoxRuntimeError(null, "%s is not an object".formatted(stringify(arg0)));
+                }
+            }
+        });
+
     }
 
-    private void setupArrayClass() {
+    private void loadLoxOrigin() {
         try {
-            Environment moduleEnv = importFile("ArrayClass");
+            Environment moduleEnv = importFile("LoxOrigin");
+            Object origin = moduleEnv.get("Origin");
+            LoxClass.origin = ((LoxClass) origin);
+            this.environment.define("Origin", origin);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void loadLoxCore() {
+        try {
+            Environment moduleEnv = importFile("LoxCore");
             Object arr = moduleEnv.get("Array");
             LoxArray.loxArrayClass = (LoxClass) arr;
             this.environment.define("Array", arr);

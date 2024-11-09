@@ -218,7 +218,11 @@ public class LoxResolver implements Stmt.Visitor<Void>, Expr.Visitor<Void> {
 
     @Override
     public Void visitClassStmt(Stmt.Class stmt) {
+
         define(stmt.name);
+        if (stmt.superName != null) {
+            resolve(stmt.superName);
+        }
         ClassType old = classType;
         classType = ClassType.Class;
         beginScope(); // 这一层是 class 的静态环境，其中储存着静态函数和静态变量
@@ -342,13 +346,6 @@ public class LoxResolver implements Stmt.Visitor<Void>, Expr.Visitor<Void> {
      * @param tupleExpr 一个仅有标识符或者标识符元祖的元祖
      */
     public void resolveVariableOnlyTuple(Expr.TupleExpr tupleExpr) {
-//        for (Expr expr : tupleExpr.exprList) {
-//            if (expr instanceof Expr.Variable || expr instanceof Expr.TupleExpr) {
-//                resolve(expr);
-//            } else {
-//                Lox.resolvingError(-1, "tuple", "not valid variable to declare");
-//            }
-//        }
         for (Expr expr : tupleExpr.exprList) {
             if (expr instanceof Expr.Variable ) {
                 define(((Expr.Variable) expr).name);

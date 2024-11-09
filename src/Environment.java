@@ -36,7 +36,11 @@ public class Environment {
         for (int i = 0; i < distance; i++) {
             curr = curr.enclosing;
         }
-        return curr.values.get(name);
+        if (curr.values.containsKey(name)) {
+            return curr.values.get(name);
+        } else {
+            throw new LoxRuntimeError(null, "no such variable/field: " + name);
+        }
     }
 
     public Object getAt(Token name, int distance) {

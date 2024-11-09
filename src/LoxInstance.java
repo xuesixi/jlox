@@ -9,10 +9,13 @@ public class LoxInstance {
     }
 
     public LoxInstance(HashMap<String, Object> fields) {
-        this((LoxClass) null);
+        this(LoxClass.origin);
         this.fields = fields;
     }
 
+    /**
+     * @return 如果本对象具有目标字段，返回true。否则，返回类中是否有对应的方法。
+     */
     public boolean contains(String field) {
         if (fields.containsKey(field)) {
             return true;
@@ -24,17 +27,6 @@ public class LoxInstance {
     }
 
     public Object get(Token field) {
-//        if (fields.containsKey(field.lexeme)) {
-//            return fields.get(field.lexeme);
-//        }
-//        if (loxClass == null) {
-//            throw new LoxRuntimeError(field, "the field or method does not exist");
-//        }
-//        LoxFunction original = loxClass.getMethod(field.lexeme);
-//        if (original == null) {
-//            throw new LoxRuntimeError(field, "the field or method does not exist");
-//        }
-//        return original.binding(this);
         try {
             return get(field.lexeme);
         }catch (LoxRuntimeError e) {
@@ -54,6 +46,10 @@ public class LoxInstance {
             throw new LoxRuntimeError(null, "the field or method does not exist");
         }
         return original.binding(this);
+    }
+
+    public boolean isInstanceOf(LoxClass type) {
+        return this.loxClass.isOfType(type);
     }
 
     public void set(Token field, Object value) {

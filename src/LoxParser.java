@@ -87,6 +87,11 @@ public class LoxParser {
 
     private Stmt classDeclaration() {
         Token className = consume(TokenType.IDENTIFIER, "A class expects a name");
+        Expr.Variable superName = null;
+        if (match(TokenType.COLON)) {
+            Token sn = consume(TokenType.IDENTIFIER, "A super class is expected after : ");
+            superName = new Expr.Variable(sn);
+        }
         consume(TokenType.LEFT_BRACE, "A class expects a { after class name");
         List<Stmt.Function> methods = new ArrayList<>();
         List<Stmt.Function> staticMethods = new ArrayList<>();
@@ -106,7 +111,7 @@ public class LoxParser {
             }
         }
         consume(TokenType.RIGHT_BRACE, "A class is terminated by a }");
-        return new Stmt.Class(className, methods, staticMethods, staticVariables);
+        return new Stmt.Class(className, methods, staticMethods, staticVariables, superName);
     }
 
     private Stmt statement() {
@@ -239,7 +244,6 @@ public class LoxParser {
      *         }
      *     }
      * </pre>
-     * @return
      */
     private Stmt withEachStatement() {
         Expr.TupleExpr leftTuple = null;
@@ -283,9 +287,8 @@ public class LoxParser {
         Stmt realBody = new Stmt.Block(List.of(loop_variable, body));
 
         Stmt whileStmt = new Stmt.While(condition, realBody);
-        Stmt wholeStmt = new Stmt.Block(List.of(var_iter_stmt, whileStmt));
 
-        return wholeStmt;
+        return new Stmt.Block(List.of(var_iter_stmt, whileStmt));
     }
 
     private Stmt whileStatement() {
