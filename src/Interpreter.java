@@ -10,7 +10,7 @@ import java.util.HashMap;
 import java.util.List;
 
 public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
-    public Environment global = new Environment(); // global 用来储存全局变量
+    public Environment global = new Environment(System.getProperty("user.dir")); // global 用来储存全局变量
 
     /**
      * native object 的父类是 null！
@@ -622,13 +622,14 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         // the resolver assures that the path does not end with .lox
 
         String pathString = stmt.path.literal.toString();
+        String moduleName = Path.of(pathString).getFileName().toString();
         try {
             Environment moduleEnv = importModule(stmt.path.literal.toString());
 
             if (stmt.items.isEmpty()) {
                 // 如果是 import "huhu"; 式的全部导入，那么在当前环境中创建一个 huhu 对象。
-                LoxInstance module = new LoxInstance.LoxModule(pathString, moduleEnv);
-                this.environment.define(pathString, module);
+                LoxInstance module = new LoxInstance.LoxModule(moduleName, moduleEnv);
+                this.environment.define(moduleName, module);
             } else {
                 // 如果是 import "huhu": Animal, sayHello; 式的选择性导入，那么在当前环境中分别定义 Animal 和 sayHello
                 for (Token item : stmt.items) {
@@ -642,7 +643,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
 
     /**
-     * 该函数用于导入内建的特殊 lox 文件
+     * 该函数用于导入内建的特殊 lox 文件。这里的文件名是相对于 class 的
      */
     private Environment importResource(String pathString) throws IOException {
         InputStream is = Interpreter.class.getResourceAsStream(pathString);
@@ -655,25 +656,26 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         }
         String src = sb.toString();
         br.close();
-        return runSrc(src);
+        return runSrc(src,"");
     }
 
     /**
-     * 该函数用于导入普通的模块
+     * 该函数用于导入普通的模块。
+     * @param pathString 不能带有.lox。该函数会自动添加。这里的文件名是相对于当前lox 环境的。
      */
     private Environment importModule(String pathString) throws IOException {
         // the resolver assures that the path does not end with .lox
-        Path path = Path.of(pathString + ".lox");
+        Path path = Path.of(this.environment.getDir(), pathString+".lox");
         String moduleSrc = Files.readString(path);
-        return runSrc(moduleSrc);
+        return runSrc(moduleSrc, path.getParent().toString());
     }
 
-    private Environment runSrc(String moduleSrc) {
+    private Environment runSrc(String moduleSrc, String moduleDir) {
         List<Token> tokens = new LoxScanner(moduleSrc).scanTokens();
         List<Stmt> statements = new LoxParser(tokens).parse();
         new LoxResolver(this).resolve(statements);
 
-        Environment moduleEnv = new Environment();
+        Environment moduleEnv = new Environment(moduleDir);
         executeWithEnvironment(statements, moduleEnv);
         return moduleEnv;
     }

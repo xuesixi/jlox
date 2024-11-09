@@ -1,0 +1,6 @@
+import "dodo";
+import "xin/lei";
+fun hey() {
+    print f "hey, this is bolu, we will also call dodo.do()";
+    dodo.do();
+}

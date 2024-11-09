@@ -4,11 +4,22 @@ public class Environment {
     public final HashMap<String, Object> values = new HashMap<>();
     private Environment enclosing;
 
+    public String getDir() {
+        return dir;
+    }
+
+    private String dir;
+
     public Environment() {
+    }
+
+    public Environment(String dir) {
+        this.dir = dir;
     }
 
     public Environment(Environment enclosing) {
         this.enclosing = enclosing;
+        this.dir = enclosing.dir;
     }
 
     public Object get(Token name) {
