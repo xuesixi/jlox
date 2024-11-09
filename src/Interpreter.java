@@ -1,4 +1,8 @@
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -473,7 +477,12 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         }
         LoxClass superClass = (LoxClass) o;
         LoxInstance thisObject = (LoxInstance) o1;
-        return superClass.getMethod(expr.methodName.lexeme).binding(thisObject);
+        LoxFunction method = superClass.getMethod(expr.methodName.lexeme);
+        if (method == null) {
+            throw new LoxRuntimeError(expr.methodName, "the method does not exist in super");
+        }else {
+            return method.binding(thisObject);
+        }
     }
 
     @Override
@@ -614,7 +623,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
         String pathString = stmt.path.literal.toString();
         try {
-            Environment moduleEnv = importFile(stmt.path.literal.toString());
+            Environment moduleEnv = importModule(stmt.path.literal.toString());
 
             if (stmt.items.isEmpty()) {
                 // 如果是 import "huhu"; 式的全部导入，那么在当前环境中创建一个 huhu 对象。
@@ -632,10 +641,34 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         return null;
     }
 
-    private Environment importFile(String pathString) throws IOException {
+    /**
+     * 该函数用于导入内建的特殊 lox 文件
+     */
+    private Environment importResource(String pathString) throws IOException {
+        InputStream is = Interpreter.class.getResourceAsStream(pathString);
+        BufferedReader br = new BufferedReader(new InputStreamReader(is));
+        StringBuilder sb = new StringBuilder();
+        char[] chars = new char[1024];
+        int len;
+        while ((len = br.read(chars)) != -1) {
+            sb.append(new String(chars, 0, len));
+        }
+        String src = sb.toString();
+        br.close();
+        return runSrc(src);
+    }
+
+    /**
+     * 该函数用于导入普通的模块
+     */
+    private Environment importModule(String pathString) throws IOException {
         // the resolver assures that the path does not end with .lox
         Path path = Path.of(pathString + ".lox");
         String moduleSrc = Files.readString(path);
+        return runSrc(moduleSrc);
+    }
+
+    private Environment runSrc(String moduleSrc) {
         List<Token> tokens = new LoxScanner(moduleSrc).scanTokens();
         List<Stmt> statements = new LoxParser(tokens).parse();
         new LoxResolver(this).resolve(statements);
@@ -824,7 +857,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
     private void loadLoxOrigin() {
         try {
-            Environment moduleEnv = importFile("LoxOrigin");
+            Environment moduleEnv = importResource("/resources/LoxOrigin.lox");
             Object origin = moduleEnv.get("Origin");
             LoxClass.origin = ((LoxClass) origin);
             this.environment.define("Origin", origin);
@@ -835,7 +868,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
     private void loadLoxCore() {
         try {
-            Environment moduleEnv = importFile("LoxCore");
+            Environment moduleEnv = importResource("/resources/LoxCore.lox");
             Object arr = moduleEnv.get("Array");
             LoxArray.loxArrayClass = (LoxClass) arr;
             this.environment.define("Array", arr);
@@ -846,7 +879,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
     private void loadLoxLib() {
         try {
-            Environment moduleEnv = importFile("LoxLib");
+            Environment moduleEnv = importResource("/resources/LoxLib.lox");
             List<String> imported = List.of("enum", "range", "is", "type", "List");
             for (String name : imported) {
                 this.environment.define(name, moduleEnv.get(name));
