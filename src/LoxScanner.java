@@ -30,6 +30,7 @@ public class LoxScanner {
         typeMap.put("in", TokenType.IN);
         typeMap.put("with", TokenType.WITH);
         typeMap.put("public", TokenType.PUBLIC);
+        typeMap.put("as", TokenType.AS);
     }
 
     private final String source;

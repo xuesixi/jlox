@@ -1,5 +1,6 @@
 
 import java.util.List;
+import java.util.Map;
 
 public abstract class Stmt {
   interface Visitor<R> {
@@ -169,10 +170,14 @@ public abstract class Stmt {
   public static class Import extends Stmt {
     Token path;
     List<Token> items;
+    Map<Token, String> aliasMap;
+    String moduleAlias;
 
-    public Import(Token path, List<Token> items) {
+    public Import(Token path, List<Token> items, Map<Token, String> aliasMap, String moduleAlias) {
       this.path = path;
       this.items = items;
+      this.aliasMap = aliasMap;
+      this.moduleAlias = moduleAlias;
     }
 
     @Override

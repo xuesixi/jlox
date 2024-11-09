@@ -386,10 +386,19 @@ public class LoxResolver implements Stmt.Visitor<Void>, Expr.Visitor<Void> {
             Lox.resolvingError(stmt.path.line, moduleName, "The module should not contain dot");
         }
         if (stmt.items.isEmpty()) {
-            define(moduleName);
+            if (stmt.moduleAlias != null) {
+                define(stmt.moduleAlias);
+            } else {
+                String[] split = moduleName.split("/");
+                define(split[split.length - 1]);
+            }
         } else {
             for (Token item : stmt.items) {
-                define(item.lexeme);
+                if (stmt.aliasMap.get(item) != null) {
+                    define(stmt.aliasMap.get(item));
+                } else {
+                    define(item.lexeme);
+                }
             }
         }
         return null;

@@ -628,12 +628,22 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
             if (stmt.items.isEmpty()) {
                 // 如果是 import "huhu"; 式的全部导入，那么在当前环境中创建一个 huhu 对象。
-                LoxInstance module = new LoxInstance.LoxModule(moduleName, moduleEnv);
-                this.environment.define(moduleName, module);
+                if (stmt.moduleAlias == null) {
+                    LoxInstance module = new LoxInstance.LoxModule(moduleName, moduleEnv);
+                    this.environment.define(moduleName, module);
+                } else {
+                    LoxInstance module = new LoxInstance.LoxModule(stmt.moduleAlias, moduleEnv);
+                    this.environment.define(stmt.moduleAlias, module);
+                }
             } else {
                 // 如果是 import "huhu": Animal, sayHello; 式的选择性导入，那么在当前环境中分别定义 Animal 和 sayHello
                 for (Token item : stmt.items) {
-                    this.environment.define(item.lexeme, moduleEnv.get(item));
+                    String alias = stmt.aliasMap.get(item);
+                    if (alias != null) {
+                        this.environment.define(alias, moduleEnv.get(item));
+                    }else {
+                        this.environment.define(item.lexeme, moduleEnv.get(item));
+                    }
                 }
             }
         } catch (IOException e) {

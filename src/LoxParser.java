@@ -1,5 +1,6 @@
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -58,14 +59,23 @@ public class LoxParser {
     private Stmt importDeclaration() {
         Token path = consume(TokenType.STRING, "The module path is missing for import statement");
         List<Token> items = new ArrayList<>();
+        HashMap<Token, String > aliasMap = new HashMap<>();
+        String moduleAlias = null;
         if (match(TokenType.COLON)) {
             do {
                 Token item = consume(TokenType.IDENTIFIER, "Here should be an identifier in the module");
                 items.add(item);
+                if (match(TokenType.AS)) {
+                    Token alias = consume(TokenType.IDENTIFIER, "An identifier is needed after as");
+                    aliasMap.put(item, alias.lexeme);
+                }
             } while (!isEnd() && match(TokenType.COMMA));
+        } else if (match(TokenType.AS)) {
+            Token alias = consume(TokenType.IDENTIFIER, "An identifier is needed after as");
+            moduleAlias = alias.lexeme;
         }
         consume(TokenType.SEMICOLON, " A semicolon is needed to terminate import statement");
-        return new Stmt.Import(path, items);
+        return new Stmt.Import(path, items, aliasMap, moduleAlias);
     }
 
     private Stmt.Var varDeclaration() {
