@@ -8,9 +8,9 @@ file: Lox.java test.lox
 	@javac -d out *.java
 	@java -cp out Lox test.lox
 
-p: prompt
+r: repl
 
-prompt: Lox.java
+repl: Lox.java
 	@javac -d out *.java
 	@java -cp out Lox
 
