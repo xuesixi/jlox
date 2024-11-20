@@ -20,3 +20,7 @@ codegen: CodeGen.java
 printer: ./other.AstPrinter.java
 	@javac -d out *.java
 	@java -cp out other.AstPrinter
+
+jar: all Lox.java manifest.txt
+	cd out && jar cfm ../myjlox.jar ../manifest.txt *.class resources
+
